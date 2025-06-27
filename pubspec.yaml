@@ -1,7 +1,7 @@
 name: flutter_xboard_sdk
-description: "A new Flutter package project."
+description: "一个用于集成XBoard API的Flutter SDK，提供简单易用的接口来访问XBoard的认证、用户管理等功能。"
 version: 0.0.1
-homepage:
+homepage: https://github.com/your-username/flutter_xboard_sdk
 
 environment:
   sdk: ^3.6.0

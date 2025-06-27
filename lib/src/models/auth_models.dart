@@ -1,0 +1,155 @@
+/// 登录请求模型
+class LoginRequest {
+  final String email;
+  final String password;
+
+  LoginRequest({
+    required this.email,
+    required this.password,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'email': email,
+      'password': password,
+    };
+  }
+}
+
+/// 登录响应模型
+class LoginResponse {
+  final bool success;
+  final String? message;
+  final String? token;
+  final UserInfo? user;
+
+  LoginResponse({
+    required this.success,
+    this.message,
+    this.token,
+    this.user,
+  });
+
+  factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    return LoginResponse(
+      success: json['success'] ?? false,
+      message: json['message'],
+      token: json['data']?['token'],
+      user: json['data']?['user'] != null 
+          ? UserInfo.fromJson(json['data']['user'])
+          : null,
+    );
+  }
+}
+
+/// 注册请求模型
+class RegisterRequest {
+  final String email;
+  final String password;
+  final String inviteCode;
+  final String emailCode;
+
+  RegisterRequest({
+    required this.email,
+    required this.password,
+    required this.inviteCode,
+    required this.emailCode,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'email': email,
+      'password': password,
+      'invite_code': inviteCode,
+      'email_code': emailCode,
+    };
+  }
+}
+
+/// 用户信息模型
+class UserInfo {
+  final int? id;
+  final String? email;
+  final String? avatar;
+  final int? balance;
+  final int? commissionBalance;
+  final String? telegramId;
+
+  UserInfo({
+    this.id,
+    this.email,
+    this.avatar,
+    this.balance,
+    this.commissionBalance,
+    this.telegramId,
+  });
+
+  factory UserInfo.fromJson(Map<String, dynamic> json) {
+    return UserInfo(
+      id: json['id'],
+      email: json['email'],
+      avatar: json['avatar'],
+      balance: json['balance'],
+      commissionBalance: json['commission_balance'],
+      telegramId: json['telegram_id'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'email': email,
+      'avatar': avatar,
+      'balance': balance,
+      'commission_balance': commissionBalance,
+      'telegram_id': telegramId,
+    };
+  }
+}
+
+/// API响应基础模型
+class ApiResponse<T> {
+  final bool success;
+  final String? message;
+  final T? data;
+  final int? code;
+
+  ApiResponse({
+    required this.success,
+    this.message,
+    this.data,
+    this.code,
+  });
+
+  factory ApiResponse.fromJson(
+    Map<String, dynamic> json,
+    T Function(dynamic)? fromJsonT,
+  ) {
+    return ApiResponse<T>(
+      success: json['success'] ?? false,
+      message: json['message'],
+      code: json['code'],
+      data: json['data'] != null && fromJsonT != null
+          ? fromJsonT(json['data'])
+          : json['data'],
+    );
+  }
+}
+
+/// 验证码发送响应
+class VerificationCodeResponse {
+  final bool success;
+  final String? message;
+
+  VerificationCodeResponse({
+    required this.success,
+    this.message,
+  });
+
+  factory VerificationCodeResponse.fromJson(Map<String, dynamic> json) {
+    return VerificationCodeResponse(
+      success: json['success'] ?? false,
+      message: json['message'],
+    );
+  }
+} 
