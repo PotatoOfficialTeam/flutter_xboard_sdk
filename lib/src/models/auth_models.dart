@@ -21,7 +21,7 @@ class LoginResponse {
   final bool success;
   final String? message;
   final String? token;
-  final UserInfo? user;
+  final Map<String, dynamic>? user;
 
   LoginResponse({
     required this.success,
@@ -43,9 +43,7 @@ class LoginResponse {
       success: isSuccess,
       message: json['message'],
       token: json['data']?['token'],
-      user: json['data']?['user'] != null 
-          ? UserInfo.fromJson(json['data']['user'])
-          : null,
+      user: json['data']?['user'],
     );
   }
 }
@@ -70,47 +68,6 @@ class RegisterRequest {
       'password': password,
       'invite_code': inviteCode,
       'email_code': emailCode,
-    };
-  }
-}
-
-/// 用户信息模型
-class UserInfo {
-  final int? id;
-  final String? email;
-  final String? avatar;
-  final int? balance;
-  final int? commissionBalance;
-  final String? telegramId;
-
-  UserInfo({
-    this.id,
-    this.email,
-    this.avatar,
-    this.balance,
-    this.commissionBalance,
-    this.telegramId,
-  });
-
-  factory UserInfo.fromJson(Map<String, dynamic> json) {
-    return UserInfo(
-      id: json['id'],
-      email: json['email'],
-      avatar: json['avatar'],
-      balance: json['balance'],
-      commissionBalance: json['commission_balance'],
-      telegramId: json['telegram_id'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'email': email,
-      'avatar': avatar,
-      'balance': balance,
-      'commission_balance': commissionBalance,
-      'telegram_id': telegramId,
     };
   }
 }
@@ -166,7 +123,6 @@ class VerificationCodeResponse {
   });
 
   factory VerificationCodeResponse.fromJson(Map<String, dynamic> json) {
-    // 兼容两种格式：success字段和status字段
     bool isSuccess = false;
     if (json.containsKey('success')) {
       isSuccess = json['success'] ?? false;

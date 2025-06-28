@@ -1,79 +1,125 @@
-/// 系统配置模型
+/// 系统配置模型 - 基于真实API结构
 class SystemConfig {
-  final String? currency;
+  final List<String> withdrawMethods;
   final bool withdrawEnabled;
-  final int? minWithdrawAmount;
-  final int? maxWithdrawAmount;
-  final double? withdrawFeeRate;
-  final List<String>? withdrawMethods;
-  final String? withdrawNotice;
+  final String currency;
+  final String currencySymbol;
 
   SystemConfig({
-    this.currency,
+    required this.withdrawMethods,
     required this.withdrawEnabled,
-    this.minWithdrawAmount,
-    this.maxWithdrawAmount,
-    this.withdrawFeeRate,
-    this.withdrawMethods,
-    this.withdrawNotice,
+    required this.currency,
+    required this.currencySymbol,
   });
 
   factory SystemConfig.fromJson(Map<String, dynamic> json) {
     return SystemConfig(
-      currency: json['currency'],
-      withdrawEnabled: json['withdraw_enable'] == 1 || json['withdraw_enable'] == true,
-      minWithdrawAmount: json['min_withdraw_amount'],
-      maxWithdrawAmount: json['max_withdraw_amount'],
-      withdrawFeeRate: json['withdraw_fee_rate']?.toDouble(),
-      withdrawMethods: json['withdraw_methods'] != null 
-          ? List<String>.from(json['withdraw_methods'])
-          : null,
-      withdrawNotice: json['withdraw_notice'],
+      withdrawMethods: (json['withdraw_methods'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      withdrawEnabled: json['withdraw_close'] == 0, // 0表示开启，1表示关闭
+      currency: json['currency']?.toString() ?? 'CNY',
+      currencySymbol: json['currency_symbol']?.toString() ?? '¥',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'currency': currency,
-      'withdraw_enable': withdrawEnabled,
-      'min_withdraw_amount': minWithdrawAmount,
-      'max_withdraw_amount': maxWithdrawAmount,
-      'withdraw_fee_rate': withdrawFeeRate,
       'withdraw_methods': withdrawMethods,
-      'withdraw_notice': withdrawNotice,
+      'withdraw_close': withdrawEnabled ? 0 : 1,
+      'currency': currency,
+      'currency_symbol': currencySymbol,
     };
   }
 }
 
-/// 余额信息模型
-class BalanceInfo {
-  final double? balance;
-  final double? commissionBalance;
-  final double? totalBalance;
-  final String? currency;
+/// 用户信息模型 - 包含余额信息，基于真实API结构
+class UserInfo {
+  final String email;
+  final double transferEnable;
+  final int? lastLoginAt;
+  final int createdAt;
+  final bool banned;
+  final bool remindExpire;
+  final bool remindTraffic;
+  final int? expiredAt;
+  final double balance; // 消费余额（分为单位）
+  final double commissionBalance; // 剩余佣金余额（分为单位）
+  final int planId;
+  final double? discount;
+  final double? commissionRate;
+  final String? telegramId;
+  final String uuid;
+  final String avatarUrl;
 
-  BalanceInfo({
-    this.balance,
-    this.commissionBalance,
-    this.totalBalance,
-    this.currency,
+  /// 获取以元为单位的余额
+  double get balanceInYuan => balance / 100;
+  
+  /// 获取以元为单位的佣金余额
+  double get commissionBalanceInYuan => commissionBalance / 100;
+
+  /// 获取总余额（元）
+  double get totalBalanceInYuan => balanceInYuan + commissionBalanceInYuan;
+
+  UserInfo({
+    required this.email,
+    required this.transferEnable,
+    this.lastLoginAt,
+    required this.createdAt,
+    required this.banned,
+    required this.remindExpire,
+    required this.remindTraffic,
+    this.expiredAt,
+    required this.balance,
+    required this.commissionBalance,
+    required this.planId,
+    this.discount,
+    this.commissionRate,
+    this.telegramId,
+    required this.uuid,
+    required this.avatarUrl,
   });
 
-  factory BalanceInfo.fromJson(Map<String, dynamic> json) {
-    return BalanceInfo(
-      balance: json['balance']?.toDouble(),
-      commissionBalance: json['commission_balance']?.toDouble(),
-      totalBalance: json['total_balance']?.toDouble(),
-      currency: json['currency'],
+  factory UserInfo.fromJson(Map<String, dynamic> json) {
+    return UserInfo(
+      email: json['email'] as String? ?? '',
+      transferEnable: (json['transfer_enable'] as num?)?.toDouble() ?? 0.0,
+      lastLoginAt: json['last_login_at'] as int?,
+      createdAt: json['created_at'] as int? ?? 0,
+      banned: (json['banned'] as int? ?? 0) == 1,
+      remindExpire: (json['remind_expire'] as int? ?? 0) == 1,
+      remindTraffic: (json['remind_traffic'] as int? ?? 0) == 1,
+      expiredAt: json['expired_at'] as int?,
+      balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
+      commissionBalance: (json['commission_balance'] as num?)?.toDouble() ?? 0.0,
+      planId: json['plan_id'] as int? ?? 0,
+      discount: (json['discount'] as num?)?.toDouble(),
+      commissionRate: (json['commission_rate'] as num?)?.toDouble(),
+      telegramId: json['telegram_id']?.toString(),
+      uuid: json['uuid'] as String? ?? '',
+      avatarUrl: json['avatar_url'] as String? ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'email': email,
+      'transfer_enable': transferEnable,
+      'last_login_at': lastLoginAt,
+      'created_at': createdAt,
+      'banned': banned ? 1 : 0,
+      'remind_expire': remindExpire ? 1 : 0,
+      'remind_traffic': remindTraffic ? 1 : 0,
+      'expired_at': expiredAt,
       'balance': balance,
       'commission_balance': commissionBalance,
-      'total_balance': totalBalance,
-      'currency': currency,
+      'plan_id': planId,
+      'discount': discount,
+      'commission_rate': commissionRate,
+      'telegram_id': telegramId,
+      'uuid': uuid,
+      'avatar_url': avatarUrl,
     };
   }
 }
@@ -82,22 +128,19 @@ class BalanceInfo {
 class TransferResult {
   final bool success;
   final String? message;
-  final double? newBalance;
-  final double? transferAmount;
+  final UserInfo? updatedUserInfo;
 
   TransferResult({
     required this.success,
     this.message,
-    this.newBalance,
-    this.transferAmount,
+    this.updatedUserInfo,
   });
 
   factory TransferResult.fromJson(Map<String, dynamic> json) {
     return TransferResult(
-      success: json['success'] ?? false,
+      success: json['status'] == 'success',
       message: json['message'],
-      newBalance: json['new_balance']?.toDouble(),
-      transferAmount: json['transfer_amount']?.toDouble(),
+      updatedUserInfo: json['data'] != null ? UserInfo.fromJson(json['data']) : null,
     );
   }
 }
@@ -107,21 +150,18 @@ class WithdrawResult {
   final bool success;
   final String? message;
   final String? withdrawId;
-  final String? status;
 
   WithdrawResult({
     required this.success,
     this.message,
     this.withdrawId,
-    this.status,
   });
 
   factory WithdrawResult.fromJson(Map<String, dynamic> json) {
     return WithdrawResult(
-      success: json['success'] ?? false,
+      success: json['status'] == 'success',
       message: json['message'],
-      withdrawId: json['withdraw_id'],
-      status: json['status'],
+      withdrawId: json['data']?['withdraw_id']?.toString(),
     );
   }
 } 

@@ -11,31 +11,12 @@ class BalanceService {
   /// 返回转账结果
   /// 注意：需要先通过SDK设置token才能调用此方法
   Future<TransferResult> transferCommission(int transferAmount) async {
-    try {
-      final result = await _httpService.postRequest(
-        '/api/v1/user/transfer',
-        {'transfer_amount': transferAmount.toString()},
-      );
+    final result = await _httpService.postRequest(
+      '/api/v1/user/transfer',
+      {'transfer_amount': transferAmount.toString()},
+    );
 
-      if (result['success'] == true) {
-        return TransferResult(
-          success: true,
-          message: result['message'] ?? '佣金转移成功',
-          transferAmount: transferAmount.toDouble(),
-          newBalance: result['data']?['balance']?.toDouble(),
-        );
-      } else {
-        return TransferResult(
-          success: false,
-          message: result['message'] ?? '佣金转移失败',
-        );
-      }
-    } catch (e) {
-      return TransferResult(
-        success: false,
-        message: '佣金转移异常: $e',
-      );
-    }
+    return TransferResult.fromJson(result);
   }
 
   /// 申请提现
@@ -47,34 +28,15 @@ class BalanceService {
     String withdrawMethod,
     String withdrawAccount,
   ) async {
-    try {
-      final result = await _httpService.postRequest(
-        '/api/v1/user/ticket/withdraw',
-        {
-          'withdraw_method': withdrawMethod,
-          'withdraw_account': withdrawAccount,
-        },
-      );
+    final result = await _httpService.postRequest(
+      '/api/v1/user/ticket/withdraw',
+      {
+        'withdraw_method': withdrawMethod,
+        'withdraw_account': withdrawAccount,
+      },
+    );
 
-      if (result['success'] == true) {
-        return WithdrawResult(
-          success: true,
-          message: result['message'] ?? '提现申请成功',
-          withdrawId: result['data']?['withdraw_id'],
-          status: result['data']?['status'],
-        );
-      } else {
-        return WithdrawResult(
-          success: false,
-          message: result['message'] ?? '提现申请失败',
-        );
-      }
-    } catch (e) {
-      return WithdrawResult(
-        success: false,
-        message: '提现申请异常: $e',
-      );
-    }
+    return WithdrawResult.fromJson(result);
   }
 
   /// 获取系统配置
@@ -83,27 +45,47 @@ class BalanceService {
   Future<SystemConfig> getSystemConfig() async {
     final result = await _httpService.getRequest('/api/v1/user/comm/config');
 
-    if (result['success'] == true && result['data'] != null) {
+    if (result['status'] == 'success' && result['data'] != null) {
       return SystemConfig.fromJson(result['data']);
     }
 
     throw Exception('获取系统配置失败: ${result['message'] ?? 'Unknown error'}');
   }
 
-  /// 获取用户余额信息
-  /// 返回余额详情
+  /// 获取用户信息（包含余额）
+  /// 返回用户信息，其中包含余额相关数据
   /// 注意：需要先通过SDK设置token才能调用此方法
-  Future<BalanceInfo> getBalanceInfo() async {
+  Future<UserInfo> getUserInfo() async {
+    final result = await _httpService.getRequest('/api/v1/user/info');
+
+    if (result['status'] == 'success' && result['data'] != null) {
+      return UserInfo.fromJson(result['data']);
+    }
+
+    throw Exception('获取用户信息失败: ${result['message'] ?? 'Unknown error'}');
+  }
+
+  /// 检查是否可以提现
+  /// 返回是否允许提现
+  /// 注意：需要先通过SDK设置token才能调用此方法
+  Future<bool> canWithdraw() async {
     try {
-      final result = await _httpService.getRequest('/api/v1/user/info');
-
-      if (result['success'] == true && result['data'] != null) {
-        return BalanceInfo.fromJson(result['data']);
-      }
-
-      throw Exception('获取余额信息失败: ${result['message'] ?? 'Unknown error'}');
+      final config = await getSystemConfig();
+      return config.withdrawEnabled;
     } catch (e) {
-      throw Exception('获取余额信息异常: $e');
+      return false; // 如果获取配置失败，默认不允许提现
+    }
+  }
+
+  /// 获取支持的提现方式
+  /// 返回提现方式列表
+  /// 注意：需要先通过SDK设置token才能调用此方法
+  Future<List<String>> getWithdrawMethods() async {
+    try {
+      final config = await getSystemConfig();
+      return config.withdrawMethods;
+    } catch (e) {
+      return []; // 如果获取配置失败，返回空列表
     }
   }
 
@@ -116,25 +98,21 @@ class BalanceService {
     int page = 1,
     int pageSize = 20,
   }) async {
-    try {
-      final result = await _httpService.getRequest(
-        '/api/v1/user/order?page=$page&limit=$pageSize&type=withdraw',
-      );
+    final result = await _httpService.getRequest(
+      '/api/v1/user/order?page=$page&limit=$pageSize&type=withdraw',
+    );
 
-      if (result['success'] == true) {
-        return {
-          'success': true,
-          'data': result['data'],
-          'total': result['total'],
-          'page': page,
-          'pageSize': pageSize,
-        };
-      }
-
-      throw Exception('获取提现历史失败: ${result['message'] ?? 'Unknown error'}');
-    } catch (e) {
-      throw Exception('获取提现历史异常: $e');
+    if (result['status'] == 'success') {
+      return {
+        'success': true,
+        'data': result['data'],
+        'total': result['total'],
+        'page': page,
+        'pageSize': pageSize,
+      };
     }
+
+    throw Exception('获取提现历史失败: ${result['message'] ?? 'Unknown error'}');
   }
 
   /// 获取佣金历史记录
@@ -146,24 +124,20 @@ class BalanceService {
     int page = 1,
     int pageSize = 20,
   }) async {
-    try {
-      final result = await _httpService.getRequest(
-        '/api/v1/user/comm/log?page=$page&limit=$pageSize',
-      );
+    final result = await _httpService.getRequest(
+      '/api/v1/user/comm/log?page=$page&limit=$pageSize',
+    );
 
-      if (result['success'] == true) {
-        return {
-          'success': true,
-          'data': result['data'],
-          'total': result['total'],
-          'page': page,
-          'pageSize': pageSize,
-        };
-      }
-
-      throw Exception('获取佣金历史失败: ${result['message'] ?? 'Unknown error'}');
-    } catch (e) {
-      throw Exception('获取佣金历史异常: $e');
+    if (result['status'] == 'success') {
+      return {
+        'success': true,
+        'data': result['data'],
+        'total': result['total'],
+        'page': page,
+        'pageSize': pageSize,
+      };
     }
+
+    throw Exception('获取佣金历史失败: ${result['message'] ?? 'Unknown error'}');
   }
 } 

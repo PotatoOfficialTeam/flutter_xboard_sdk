@@ -90,10 +90,9 @@ void main() {
           final loginResponse = LoginResponse.fromJson(result);
           if (loginResponse.user != null) {
             print('👤 用户信息:');
-            print('  ID: ${loginResponse.user!.id}');
-            print('  Email: ${loginResponse.user!.email}');
-            print('  余额: ${loginResponse.user!.balance}');
-            print('  佣金余额: ${loginResponse.user!.commissionBalance}');
+            print('  Email: ${loginResponse.user!['email']}');
+            print('  余额: ${loginResponse.user!['balance']}');
+            print('  佣金余额: ${loginResponse.user!['commission_balance']}');
           }
         } else {
           print('❌ 登录失败: ${result['message']}');

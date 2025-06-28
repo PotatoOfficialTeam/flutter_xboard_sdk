@@ -198,6 +198,65 @@ class UserInfo {
 }
 ```
 
+#### 系统配置模型（基于真实API）
+
+```dart
+class SystemConfig {
+  final List<String> withdrawMethods;  // 支持的提现方式
+  final bool withdrawEnabled;          // 提现是否开启（基于withdraw_close字段）
+  final String currency;               // 系统货币
+  final String currencySymbol;         // 货币符号
+}
+```
+
+#### 用户信息模型（包含余额，基于真实API）
+
+```dart
+class UserInfo {
+  final String email;
+  final double transferEnable;
+  final int? lastLoginAt;
+  final int createdAt;
+  final bool banned;                   // 账户状态
+  final bool remindExpire;
+  final bool remindTraffic;
+  final int? expiredAt;
+  final double balance;                // 消费余额（分为单位）
+  final double commissionBalance;      // 佣金余额（分为单位）
+  final int planId;
+  final double? discount;
+  final double? commissionRate;
+  final String? telegramId;
+  final String uuid;
+  final String avatarUrl;
+
+  // 便捷的元单位转换
+  double get balanceInYuan => balance / 100;
+  double get commissionBalanceInYuan => commissionBalance / 100;
+  double get totalBalanceInYuan => balanceInYuan + commissionBalanceInYuan;
+}
+```
+
+#### 转账结果模型
+
+```dart
+class TransferResult {
+  final bool success;           // 是否成功
+  final String? message;        // 结果消息
+  final UserInfo? updatedUserInfo; // 更新后的用户信息
+}
+```
+
+#### 提现结果模型
+
+```dart
+class WithdrawResult {
+  final bool success;         // 是否成功
+  final String? message;      // 结果消息
+  final String? withdrawId;   // 提现订单ID
+}
+```
+
 ## 异常处理
 
 SDK提供了多种异常类型：
@@ -432,12 +491,12 @@ final loginResult = await XBoardSDK.instance.auth.login(
   'password'
 );
 
-if (loginResult.success) {
+if (loginResult['success'] == true) {
   // 设置认证令牌
-  XBoardSDK.instance.setAuthToken(loginResult.data!.token);
-  print('登录成功: ${loginResult.data!.user?.email}');
+  XBoardSDK.instance.setAuthToken(loginResult['data']['token']);
+  print('登录成功: ${loginResult['data']['user']['email']}');
 } else {
-  print('登录失败: ${loginResult.message}');
+  print('登录失败: ${loginResult['message']}');
 }
 
 // 发送验证码
@@ -478,20 +537,31 @@ print('已用流量: ${stats.usedTraffic}');
 ```dart
 // 获取系统配置
 final config = await XBoardSDK.instance.balance.getSystemConfig();
-print('系统货币: ${config.currency}');
+print('系统货币: ${config.currency}${config.currencySymbol}');
 print('提现开启: ${config.withdrawEnabled}');
-print('最小提现金额: ${config.minWithdrawAmount}');
+print('支持的提现方式: ${config.withdrawMethods.join(", ")}');
 
-// 获取余额信息
-final balanceInfo = await XBoardSDK.instance.balance.getBalanceInfo();
-print('当前余额: ${balanceInfo.balance}');
-print('佣金余额: ${balanceInfo.commissionBalance}');
+// 获取用户信息（包含余额）
+final userInfo = await XBoardSDK.instance.balance.getUserInfo();
+print('当前余额: ${userInfo.balanceInYuan}元');
+print('佣金余额: ${userInfo.commissionBalanceInYuan}元');
+print('总余额: ${userInfo.totalBalanceInYuan}元');
 
-// 转移佣金到余额
-final transferResult = await XBoardSDK.instance.balance.transferCommission(1000); // 10.00元 (分为单位)
+// 检查是否可以提现
+final canWithdraw = await XBoardSDK.instance.balance.canWithdraw();
+print('是否可提现: $canWithdraw');
+
+// 获取提现方式
+final withdrawMethods = await XBoardSDK.instance.balance.getWithdrawMethods();
+print('提现方式: ${withdrawMethods.join(", ")}');
+
+// 转移佣金到余额（以分为单位）
+final transferResult = await XBoardSDK.instance.balance.transferCommission(1000); // 10.00元
 if (transferResult.success) {
   print('佣金转移成功: ${transferResult.message}');
-  print('新余额: ${transferResult.newBalance}');
+  if (transferResult.updatedUserInfo != null) {
+    print('新余额: ${transferResult.updatedUserInfo!.balanceInYuan}元');
+  }
 }
 
 // 申请提现
@@ -535,7 +605,7 @@ if (response.success && response.data != null) {
   
   // 应用层计算折扣逻辑（SDK不包含业务逻辑）
   if (coupon.type == 1) {
-    print('减免金额: ¥${coupon.value}');
+    print('减免金额: ¥${coupon.value! / 100}'); // 分转元
   } else if (coupon.type == 2) {
     print('折扣比例: ${coupon.value}%');
   }
@@ -646,10 +716,16 @@ class BalanceService {
   // 获取系统配置
   Future<SystemConfig> getSystemConfig();
   
-  // 获取余额信息
-  Future<BalanceInfo> getBalanceInfo();
+  // 获取用户信息（包含余额）
+  Future<UserInfo> getUserInfo();
   
-  // 佣金转账
+  // 检查是否可以提现
+  Future<bool> canWithdraw();
+  
+  // 获取支持的提现方式
+  Future<List<String>> getWithdrawMethods();
+  
+  // 佣金转账（分为单位）
   Future<TransferResult> transferCommission(int transferAmount);
   
   // 申请提现
@@ -665,28 +741,42 @@ class BalanceService {
 
 ### 数据模型
 
-#### 系统配置模型
+#### 系统配置模型（基于真实API）
 
 ```dart
 class SystemConfig {
-  final String? currency;              // 系统货币
-  final bool withdrawEnabled;          // 提现是否开启
-  final int? minWithdrawAmount;        // 最小提现金额
-  final int? maxWithdrawAmount;        // 最大提现金额
-  final double? withdrawFeeRate;       // 提现手续费率
-  final List<String>? withdrawMethods; // 支持的提现方式
-  final String? withdrawNotice;        // 提现须知
+  final List<String> withdrawMethods;  // 支持的提现方式
+  final bool withdrawEnabled;          // 提现是否开启（基于withdraw_close字段）
+  final String currency;               // 系统货币
+  final String currencySymbol;         // 货币符号
 }
 ```
 
-#### 余额信息模型
+#### 用户信息模型（包含余额，基于真实API）
 
 ```dart
-class BalanceInfo {
-  final double? balance;            // 可用余额
-  final double? commissionBalance;  // 佣金余额
-  final double? totalBalance;       // 总余额
-  final String? currency;           // 货币类型
+class UserInfo {
+  final String email;
+  final double transferEnable;
+  final int? lastLoginAt;
+  final int createdAt;
+  final bool banned;                   // 账户状态
+  final bool remindExpire;
+  final bool remindTraffic;
+  final int? expiredAt;
+  final double balance;                // 消费余额（分为单位）
+  final double commissionBalance;      // 佣金余额（分为单位）
+  final int planId;
+  final double? discount;
+  final double? commissionRate;
+  final String? telegramId;
+  final String uuid;
+  final String avatarUrl;
+
+  // 便捷的元单位转换
+  double get balanceInYuan => balance / 100;
+  double get commissionBalanceInYuan => commissionBalance / 100;
+  double get totalBalanceInYuan => balanceInYuan + commissionBalanceInYuan;
 }
 ```
 
@@ -696,8 +786,7 @@ class BalanceInfo {
 class TransferResult {
   final bool success;           // 是否成功
   final String? message;        // 结果消息
-  final double? newBalance;     // 转账后新余额
-  final double? transferAmount; // 转账金额
+  final UserInfo? updatedUserInfo; // 更新后的用户信息
 }
 ```
 
@@ -708,60 +797,9 @@ class WithdrawResult {
   final bool success;         // 是否成功
   final String? message;      // 结果消息
   final String? withdrawId;   // 提现订单ID
-  final String? status;       // 提现状态
 }
 ```
 
 #### 优惠券数据模型
 
-```dart
-class CouponData {
-  final String? id;                // 优惠券ID
-  final String? name;              // 优惠券名称
-  final String? code;              // 优惠码
-  final int? type;                 // 折扣类型 (1: 金额折扣, 2: 百分比折扣)
-  final double? value;             // 折扣值
-  final int? limitUse;             // 使用限制次数
-  final int? limitUseWithUser;     // 单用户使用限制
-  final DateTime? startedAt;       // 开始时间
-  final DateTime? endedAt;         // 结束时间
-  final bool? show;                // 是否显示
-}
-```
-
-#### 优惠券响应模型
-
-```dart
-class CouponResponse {
-  final bool success;              // 是否成功
-  final String? message;           // 响应消息
-  final CouponData? data;          // 优惠券数据
-  final Map<String, dynamic>? errors; // 错误信息
-}
-```
-
-#### 优惠券列表响应模型
-
-```dart
-class AvailableCouponsResponse {
-  final bool success;              // 是否成功
-  final String? message;           // 响应消息
-  final List<CouponData>? data;    // 优惠券列表
-  final int? total;                // 总数量
-}
-```
-
-### CouponService 优惠券服务
-
-```dart
-class CouponService {
-  // 验证优惠券
-  Future<CouponResponse> checkCoupon(String code, int planId);
-  
-  // 获取可用优惠券列表
-  Future<AvailableCouponsResponse> getAvailableCoupons({int? planId});
-  
-  // 获取优惠券使用历史
-  Future<Map<String, dynamic>> getCouponHistory({int page = 1, int pageSize = 20});
-}
 ```

@@ -1,158 +1,141 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'dart:io';
+import '../exceptions/xboard_exceptions.dart';
 
 class HttpService {
-  late String _baseUrl;
+  final String baseUrl;
   String? _authToken;
+  final HttpClient _httpClient = HttpClient();
 
-  HttpService(String baseUrl) {
-    setBaseUrl(baseUrl);
-  }
+  HttpService(this.baseUrl);
 
-  /// 设置基础URL
-  void setBaseUrl(String baseUrl) {
-    // 确保URL以斜杠结尾
-    _baseUrl = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
-  }
-
-  /// 获取基础URL
-  String get baseUrl => _baseUrl;
-
-  /// 设置认证Token
+  /// 设置认证token
   void setAuthToken(String token) {
     _authToken = token;
   }
 
-  /// 清除认证Token
+  /// 清除认证token
   void clearAuthToken() {
     _authToken = null;
   }
 
-  /// 构建完整URL
-  String _buildUrl(String endpoint) {
-    // 移除endpoint开头的斜杠避免重复
-    final cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
-    return '$_baseUrl$cleanEndpoint';
+  /// 发送GET请求
+  Future<Map<String, dynamic>> getRequest(String path, {Map<String, String>? headers}) async {
+    return _sendRequest('GET', path, headers: headers);
   }
 
-  /// 构建请求头
-  Map<String, String> _buildHeaders({Map<String, String>? additionalHeaders}) {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-
-    if (_authToken != null) {
-      headers['Authorization'] = 'Bearer $_authToken';
-    }
-
-    if (additionalHeaders != null) {
-      headers.addAll(additionalHeaders);
-    }
-
-    return headers;
+  /// 发送POST请求
+  Future<Map<String, dynamic>> postRequest(String path, Map<String, dynamic> data, {Map<String, String>? headers}) async {
+    return _sendRequest('POST', path, data: data, headers: headers);
   }
 
-  /// GET请求
-  Future<Map<String, dynamic>> getRequest(
-    String endpoint, {
+  /// 发送PUT请求
+  Future<Map<String, dynamic>> putRequest(String path, Map<String, dynamic> data, {Map<String, String>? headers}) async {
+    return _sendRequest('PUT', path, data: data, headers: headers);
+  }
+
+  /// 发送DELETE请求
+  Future<Map<String, dynamic>> deleteRequest(String path, {Map<String, String>? headers}) async {
+    return _sendRequest('DELETE', path, headers: headers);
+  }
+
+  /// 通用HTTP请求方法
+  Future<Map<String, dynamic>> _sendRequest(
+    String method,
+    String path, {
+    Map<String, dynamic>? data,
     Map<String, String>? headers,
   }) async {
     try {
-      final url = Uri.parse(_buildUrl(endpoint));
-      final requestHeaders = _buildHeaders(additionalHeaders: headers);
-      
-      final response = await http.get(url, headers: requestHeaders);
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('GET请求失败: $e');
-    }
-  }
+      final uri = Uri.parse('$baseUrl$path');
+      final request = await _httpClient.openUrl(method, uri);
 
-  /// POST请求
-  Future<Map<String, dynamic>> postRequest(
-    String endpoint,
-    Map<String, dynamic> data, {
-    Map<String, String>? headers,
-  }) async {
-    try {
-      final url = Uri.parse(_buildUrl(endpoint));
-      final requestHeaders = _buildHeaders(additionalHeaders: headers);
-      
-      final response = await http.post(
-        url,
-        headers: requestHeaders,
-        body: jsonEncode(data),
-      );
-      
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('POST请求失败: $e');
-    }
-  }
+      // 设置请求头
+      request.headers.set('Content-Type', 'application/json');
+      request.headers.set('Accept', 'application/json');
 
-  /// PUT请求
-  Future<Map<String, dynamic>> putRequest(
-    String endpoint,
-    Map<String, dynamic> data, {
-    Map<String, String>? headers,
-  }) async {
-    try {
-      final url = Uri.parse(_buildUrl(endpoint));
-      final requestHeaders = _buildHeaders(additionalHeaders: headers);
-      
-      final response = await http.put(
-        url,
-        headers: requestHeaders,
-        body: jsonEncode(data),
-      );
-      
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('PUT请求失败: $e');
-    }
-  }
+      // 添加自定义头
+      if (headers != null) {
+        headers.forEach((key, value) {
+          request.headers.set(key, value);
+        });
+      }
 
-  /// DELETE请求
-  Future<Map<String, dynamic>> deleteRequest(
-    String endpoint, {
-    Map<String, String>? headers,
-  }) async {
-    try {
-      final url = Uri.parse(_buildUrl(endpoint));
-      final requestHeaders = _buildHeaders(additionalHeaders: headers);
-      
-      final response = await http.delete(url, headers: requestHeaders);
-      return _handleResponse(response);
+      // 添加认证头
+      if (_authToken != null) {
+        request.headers.set('Authorization', _authToken!);
+      }
+
+      // 写入请求体
+      if (data != null) {
+        final jsonData = jsonEncode(data);
+        request.add(utf8.encode(jsonData));
+      }
+
+      // 发送请求并获取响应
+      final response = await request.close();
+      final responseBody = await response.transform(utf8.decoder).join();
+
+      return _handleResponse(response.statusCode, responseBody);
+    } on SocketException catch (e) {
+      throw NetworkException('网络连接失败: ${e.message}');
     } catch (e) {
-      throw Exception('DELETE请求失败: $e');
+      throw NetworkException('请求失败: $e');
     }
   }
 
   /// 处理HTTP响应
-  Map<String, dynamic> _handleResponse(http.Response response) {
+  Map<String, dynamic> _handleResponse(int statusCode, String responseBody) {
     try {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      
-      // 将XBoard的status格式转换为标准格式
-      if (data.containsKey('status')) {
-        final status = data['status'];
-        data['success'] = status == 'success';
+      final Map<String, dynamic> jsonResponse = jsonDecode(responseBody);
+
+      if (statusCode >= 200 && statusCode < 300) {
+        // 兼容两种响应格式：
+        // 1. XBoard格式: {status: "success", data: {...}}
+        // 2. 通用格式: {success: true, data: {...}}
         
-        // 如果没有message但有其他错误信息，尝试提取
-        if (!data.containsKey('message') && status != 'success') {
-          data['message'] = data['msg'] ?? data['error'] ?? '请求失败';
+        if (jsonResponse.containsKey('status')) {
+          // XBoard格式 -> 转换为通用格式
+          return {
+            'success': jsonResponse['status'] == 'success',
+            'status': jsonResponse['status'],
+            'message': jsonResponse['message'],
+            'data': jsonResponse['data'],
+            'total': jsonResponse['total'],
+          };
+        } else if (jsonResponse.containsKey('success')) {
+          // 已经是通用格式，直接返回
+          return jsonResponse;
+        } else {
+          // 其他格式，包装为通用格式
+          return {
+            'success': true,
+            'data': jsonResponse,
+          };
+        }
+      } else {
+        // HTTP错误状态码
+        String errorMessage = '请求失败 (状态码: $statusCode)';
+        
+        if (jsonResponse.containsKey('message')) {
+          errorMessage = jsonResponse['message'];
+        } else if (jsonResponse.containsKey('error')) {
+          errorMessage = jsonResponse['error'];
+        }
+
+        if (statusCode == 401) {
+          throw AuthException(errorMessage);
+        } else if (statusCode >= 400 && statusCode < 500) {
+          throw ApiException(errorMessage, statusCode);
+        } else {
+          throw NetworkException(errorMessage);
         }
       }
-      
-      return data;
     } catch (e) {
-      // 如果无法解析JSON，返回错误
-      return {
-        'success': false,
-        'message': '响应解析失败: ${response.body}',
-        'status_code': response.statusCode,
-      };
+      if (e is XBoardException) {
+        rethrow;
+      }
+      throw ApiException('响应解析失败: $e');
     }
   }
 } 
