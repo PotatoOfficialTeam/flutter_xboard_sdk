@@ -118,7 +118,7 @@ class HttpService {
     return headers;
   }
   
-  // 处理响应
+  // 处理响应 - 适配XBoard API格式
   Map<String, dynamic> _handleResponse(http.Response response) {
     final statusCode = response.statusCode;
     final body = response.body;
@@ -131,6 +131,18 @@ class HttpService {
     }
     
     if (statusCode >= 200 && statusCode < 300) {
+      // XBoard API使用"status"字段，我们需要转换为"success"以保持向后兼容
+      if (data.containsKey('status')) {
+        final success = data['status'] == 'success';
+        return {
+          'success': success,
+          'message': data['message'],
+          'data': data['data'],
+          'error': data['error'],
+          // 保留原始字段以供调试
+          '_original_status': data['status'],
+        };
+      }
       return data;
     } else {
       final message = data['message'] ?? 'Request failed with status $statusCode';

@@ -254,13 +254,87 @@ final response = LoginResponse.fromJson(apiResponse);
 
 ## 测试
 
-运行测试：
+### 单元测试
+
+运行基础的单元测试：
 
 ```bash
-flutter test
+flutter test test/flutter_xboard_sdk_test.dart
 ```
 
-SDK包含了完整的单元测试，确保代码质量和稳定性。
+### 集成测试
+
+**⚠️ 重要提示：集成测试会连接真实的XBoard API，需要有效的测试账号**
+
+#### 步骤1：设置环境变量
+
+**macOS/Linux:**
+```bash
+export XBOARD_BASE_URL="https://your-xboard-domain.com"
+export XBOARD_TEST_EMAIL="your-test@example.com"
+export XBOARD_TEST_PASSWORD="your_test_password"
+export XBOARD_TEST_INVITE_CODE="your_invite_code"  # 可选
+```
+
+**Windows:**
+```cmd
+set XBOARD_BASE_URL=https://your-xboard-domain.com
+set XBOARD_TEST_EMAIL=your-test@example.com
+set XBOARD_TEST_PASSWORD=your_test_password
+set XBOARD_TEST_INVITE_CODE=your_invite_code
+```
+
+#### 步骤2：运行集成测试
+
+```bash
+# 使用Flutter命令
+flutter test test/integration_test.dart
+
+# 或使用提供的脚本（推荐）
+./scripts/run_integration_test.sh
+```
+
+#### 集成测试内容
+
+- ✅ 真实API登录测试
+- ✅ 邮箱验证码发送测试
+- ✅ Token刷新功能测试
+- ✅ 退出登录测试
+- ✅ API错误处理测试
+- ✅ 性能基准测试
+
+#### 测试输出示例
+
+```
+🚀 XBoard SDK 集成测试
+======================
+✅ 环境变量检查通过
+📍 Base URL: https://demo.xboard.com
+📧 Test Email: test@example.com
+🔑 Password: ************
+
+🔐 开始测试用户登录...
+📄 登录响应: {success: true, data: {token: eyJ...}}
+✅ 登录成功！
+🔑 Token已设置: eyJhbGciOiJIUzI1NiIs...
+👤 用户信息:
+  ID: 123
+  Email: test@example.com
+  余额: 10000
+  佣金余额: 500
+
+📧 开始测试发送验证码...
+✅ 验证码发送成功！
+
+🎉 集成测试完成！
+```
+
+### 安全注意事项
+
+- 🚨 **绝对不要**将真实的生产环境凭据提交到代码仓库
+- 🧪 建议创建专门的测试账号用于集成测试
+- 🔐 环境变量文件 `.env` 已被添加到 `.gitignore` 中
+- 📝 可以复制 `.env.example` 文件来创建本地配置
 
 ## 贡献
 
@@ -277,3 +351,4 @@ MIT License
 - 实现基础认证功能
 - 添加用户登录、注册、密码重置
 - 完整的类型定义和异常处理
+- 🆕 添加集成测试支持
