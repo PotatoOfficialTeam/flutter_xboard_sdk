@@ -148,4 +148,124 @@ void modelExample() {
   print('  消息: ${loginResponse.message}');
   print('  Token: ${loginResponse.token}');
   print('  用户信息: ${loginResponse.user?.toJson()}');
-} 
+}
+
+Future<void> testBalanceIntegration() async {
+  print('=== XBoard SDK 余额功能集成测试 ===');
+  
+  try {
+    // 初始化SDK
+    await XBoardSDK.instance.initialize('https://example.com');
+    print('✅ SDK初始化成功');
+    
+    // 验证余额服务可访问
+    print('✅ 余额服务创建成功: ${XBoardSDK.instance.balance.runtimeType}');
+    
+    // 设置测试token（实际使用时应该从登录获取）
+    XBoardSDK.instance.setAuthToken('test_token_123');
+    print('✅ Token设置成功');
+    
+    print('\n=== 余额服务API方法测试 ===');
+    
+    // 测试数据模型
+    testBalanceModels();
+    
+    print('\n✅ 余额功能集成测试完成');
+    print('📱 可用的余额API:');
+    print('  • transferCommission() - 佣金转账');
+    print('  • withdrawFunds() - 申请提现');
+    print('  • getSystemConfig() - 获取系统配置');
+    print('  • getBalanceInfo() - 获取余额信息');
+    print('  • getWithdrawHistory() - 获取提现历史');
+    print('  • getCommissionHistory() - 获取佣金历史');
+    
+  } catch (e) {
+    print('❌ 集成测试失败: $e');
+  }
+}
+
+void testBalanceModels() {
+  print('\n--- 数据模型测试 ---');
+  
+  // 测试SystemConfig模型
+  final configJson = {
+    'currency': 'CNY',
+    'withdraw_enable': 1,
+    'min_withdraw_amount': 100,
+    'max_withdraw_amount': 10000,
+    'withdraw_fee_rate': 0.05,
+    'withdraw_methods': ['alipay', 'wechat'],
+    'withdraw_notice': '提现须知'
+  };
+  
+  final config = SystemConfig.fromJson(configJson);
+  print('✅ SystemConfig模型: ${config.currency}, 提现开启: ${config.withdrawEnabled}');
+  
+  // 测试BalanceInfo模型
+  final balanceJson = {
+    'balance': 100.5,
+    'commission_balance': 50.25,
+    'total_balance': 150.75,
+    'currency': 'CNY'
+  };
+  
+  final balance = BalanceInfo.fromJson(balanceJson);
+  print('✅ BalanceInfo模型: 余额 ${balance.balance}, 佣金 ${balance.commissionBalance}');
+  
+  // 测试TransferResult模型
+  final transferResult = TransferResult(
+    success: true,
+    message: '转账成功',
+    transferAmount: 50.0,
+    newBalance: 150.0,
+  );
+  print('✅ TransferResult模型: ${transferResult.success}, ${transferResult.message}');
+  
+  // 测试WithdrawResult模型
+  final withdrawResult = WithdrawResult(
+    success: true,
+    message: '提现申请成功',
+    withdrawId: 'withdraw_123',
+    status: 'pending',
+  );
+  print('✅ WithdrawResult模型: ${withdrawResult.success}, ID: ${withdrawResult.withdrawId}');
+}
+
+// 使用示例（注释掉，避免在测试时执行实际网络请求）
+/*
+Future<void> exampleUsage() async {
+  // 初始化SDK
+  await XBoardSDK.instance.initialize('https://your-xboard-domain.com');
+  
+  // 用户登录获取token
+  final loginResult = await XBoardSDK.instance.auth.login('user@example.com', 'password');
+  if (loginResult.success) {
+    XBoardSDK.instance.setAuthToken(loginResult.data!.token);
+    
+    // 获取系统配置
+    final config = await XBoardSDK.instance.balance.getSystemConfig();
+    print('系统货币: ${config.currency}');
+    print('提现开启: ${config.withdrawEnabled}');
+    
+    // 获取余额信息
+    final balanceInfo = await XBoardSDK.instance.balance.getBalanceInfo();
+    print('当前余额: ${balanceInfo.balance}');
+    print('佣金余额: ${balanceInfo.commissionBalance}');
+    
+    // 转移佣金到余额
+    final transferResult = await XBoardSDK.instance.balance.transferCommission(1000); // 10.00元
+    if (transferResult.success) {
+      print('佣金转移成功: ${transferResult.message}');
+    }
+    
+    // 申请提现
+    final withdrawResult = await XBoardSDK.instance.balance.withdrawFunds(
+      'alipay',
+      'your_alipay_account@example.com'
+    );
+    if (withdrawResult.success) {
+      print('提现申请成功: ${withdrawResult.withdrawId}');
+    }
+  }
+}
+*/ 

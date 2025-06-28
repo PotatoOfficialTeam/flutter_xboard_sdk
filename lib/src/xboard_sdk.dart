@@ -1,25 +1,25 @@
 import 'services/http_service.dart';
 import 'services/auth_service.dart';
+import 'services/subscription_service.dart';
+import 'services/balance_service.dart';
+import 'utils/subscription_cache.dart';
 import 'exceptions/xboard_exceptions.dart';
 
 /// XBoard SDK主类
 /// 提供对XBoard API的统一访问接口
 class XBoardSDK {
   static XBoardSDK? _instance;
-  late final HttpService _httpService;
-  late final AuthService auth;
+  static XBoardSDK get instance => _instance ??= XBoardSDK._internal();
+  
+  XBoardSDK._internal();
 
-  /// 私有构造函数
-  XBoardSDK._internal() {
-    _httpService = HttpService();
-    auth = AuthService(_httpService);
-  }
-
-  /// 获取SDK单例实例
-  static XBoardSDK get instance {
-    _instance ??= XBoardSDK._internal();
-    return _instance!;
-  }
+  late HttpService _httpService;
+  late AuthService _authService;
+  late SubscriptionService _subscriptionService;
+  late BalanceService _balanceService;
+  
+  String? _authToken;
+  bool _isInitialized = false;
 
   /// 初始化SDK
   /// [baseUrl] XBoard服务器的基础URL
@@ -38,37 +38,51 @@ class XBoardSDK {
         ? baseUrl.substring(0, baseUrl.length - 1)
         : baseUrl;
     
-    _httpService.setBaseUrl(cleanUrl);
+    _httpService = HttpService(cleanUrl);
+    _authService = AuthService(_httpService);
+    _subscriptionService = SubscriptionService(_httpService);
+    _balanceService = BalanceService(_httpService);
+    
+    // 初始化订阅缓存
+    await SubscriptionCache.init();
+    
+    _isInitialized = true;
   }
 
-  /// 设置认证token
-  /// [token] 用户认证token
+  /// 设置认证Token
   void setAuthToken(String token) {
-    if (token.isEmpty) {
-      throw ParameterException('Token cannot be empty');
-    }
-    _httpService.setToken(token);
+    _authToken = token;
+    _httpService.setAuthToken(token);
   }
 
-  /// 清除认证token
+  /// 获取当前认证Token
+  String? getAuthToken() {
+    return _authToken;
+  }
+
+  /// 清除认证Token
   void clearAuthToken() {
-    _httpService.clearToken();
+    _authToken = null;
+    _httpService.clearAuthToken();
+    // 清除订阅缓存
+    SubscriptionCache.clearAll();
   }
 
   /// 检查SDK是否已初始化
-  bool get isInitialized {
-    try {
-      // 尝试进行一个简单的操作来检查是否已初始化
-      _httpService.getRequest('/test');
-      return true;
-    } catch (e) {
-      if (e.toString().contains('Base URL not set')) {
-        return false;
-      }
-      return true; // 其他错误说明已初始化但可能是网络问题
-    }
-  }
+  bool get isInitialized => _isInitialized;
 
   /// 获取HTTP服务实例（供高级用户使用）
   HttpService get httpService => _httpService;
+
+  /// 认证服务
+  AuthService get auth => _authService;
+  
+  /// 订阅服务
+  SubscriptionService get subscription => _subscriptionService;
+
+  /// 余额服务
+  BalanceService get balance => _balanceService;
+
+  /// 获取基础URL
+  String? get baseUrl => _httpService.baseUrl;
 } 

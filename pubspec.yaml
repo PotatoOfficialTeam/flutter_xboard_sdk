@@ -1,17 +1,18 @@
 name: flutter_xboard_sdk
-description: "一个用于集成XBoard API的Flutter SDK，提供简单易用的接口来访问XBoard的认证、用户管理等功能。"
+description: "XBoard网站的Flutter SDK，提供认证、订阅管理等功能"
 version: 0.0.1
-homepage: https://github.com/your-username/flutter_xboard_sdk
+homepage: 
 
 environment:
-  sdk: ^3.6.0
+  sdk: '>=3.6.0 <4.0.0'
   flutter: ">=1.17.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.2.0
-  
+  http: ^1.4.0
+  shared_preferences: ^2.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
