@@ -161,6 +161,9 @@ Future<void> testBalanceIntegration() async {
     // 验证余额服务可访问
     print('✅ 余额服务创建成功: ${XBoardSDK.instance.balance.runtimeType}');
     
+    // 验证优惠券服务可访问
+    print('✅ 优惠券服务创建成功: ${XBoardSDK.instance.coupon.runtimeType}');
+    
     // 设置测试token（实际使用时应该从登录获取）
     XBoardSDK.instance.setAuthToken('test_token_123');
     print('✅ Token设置成功');
@@ -170,7 +173,12 @@ Future<void> testBalanceIntegration() async {
     // 测试数据模型
     testBalanceModels();
     
-    print('\n✅ 余额功能集成测试完成');
+    print('\n=== 优惠券服务API方法测试 ===');
+    
+    // 测试优惠券数据模型
+    testCouponModels();
+    
+    print('\n✅ 功能集成测试完成');
     print('📱 可用的余额API:');
     print('  • transferCommission() - 佣金转账');
     print('  • withdrawFunds() - 申请提现');
@@ -178,6 +186,11 @@ Future<void> testBalanceIntegration() async {
     print('  • getBalanceInfo() - 获取余额信息');
     print('  • getWithdrawHistory() - 获取提现历史');
     print('  • getCommissionHistory() - 获取佣金历史');
+    
+    print('🎫 可用的优惠券API:');
+    print('  • checkCoupon() - 验证优惠券');
+    print('  • getAvailableCoupons() - 获取可用优惠券');
+    print('  • getCouponHistory() - 获取优惠券使用历史');
     
   } catch (e) {
     print('❌ 集成测试失败: $e');
@@ -231,6 +244,50 @@ void testBalanceModels() {
   print('✅ WithdrawResult模型: ${withdrawResult.success}, ID: ${withdrawResult.withdrawId}');
 }
 
+void testCouponModels() {
+  print('\n--- 优惠券数据模型测试 ---');
+  
+  // 测试CouponData模型
+  final couponJson = {
+    'id': '123',
+    'name': '新用户优惠',
+    'code': 'NEWUSER20',
+    'type': 2, // 百分比折扣
+    'value': 20.0, // 20%折扣
+    'limit_use': 100,
+    'limit_use_with_user': 1,
+    'started_at': 1703000000, // 时间戳
+    'ended_at': 1735000000,
+    'show': 1,
+    'created_at': 1700000000,
+    'updated_at': 1700000000,
+  };
+  
+  final coupon = CouponData.fromJson(couponJson);
+  print('✅ CouponData模型: ${coupon.code}, 类型: ${coupon.type}, 值: ${coupon.value}');
+  
+  // 测试CouponResponse模型
+  final responseJson = {
+    'success': true,
+    'message': '优惠券验证成功',
+    'data': couponJson,
+  };
+  
+  final response = CouponResponse.fromJson(responseJson);
+  print('✅ CouponResponse模型: ${response.success}, 消息: ${response.message}');
+  
+  // 测试AvailableCouponsResponse模型
+  final listResponseJson = {
+    'success': true,
+    'message': '获取成功',
+    'data': [couponJson],
+    'total': 1,
+  };
+  
+  final listResponse = AvailableCouponsResponse.fromJson(listResponseJson);
+  print('✅ AvailableCouponsResponse模型: ${listResponse.success}, 数量: ${listResponse.total}');
+}
+
 // 使用示例（注释掉，避免在测试时执行实际网络请求）
 /*
 Future<void> exampleUsage() async {
@@ -241,6 +298,8 @@ Future<void> exampleUsage() async {
   final loginResult = await XBoardSDK.instance.auth.login('user@example.com', 'password');
   if (loginResult.success) {
     XBoardSDK.instance.setAuthToken(loginResult.data!.token);
+    
+    // === 余额功能 ===
     
     // 获取系统配置
     final config = await XBoardSDK.instance.balance.getSystemConfig();
@@ -265,6 +324,39 @@ Future<void> exampleUsage() async {
     );
     if (withdrawResult.success) {
       print('提现申请成功: ${withdrawResult.withdrawId}');
+    }
+    
+    // === 优惠券功能 ===
+    
+    // 验证优惠券
+    final couponResponse = await XBoardSDK.instance.coupon.checkCoupon('SAVE20', 123);
+    if (couponResponse.success && couponResponse.data != null) {
+      final coupon = couponResponse.data!;
+      print('优惠券名称: ${coupon.name}');
+      print('折扣类型: ${coupon.type}'); // 1: 金额折扣, 2: 百分比折扣
+      print('折扣值: ${coupon.value}');
+      
+      // 应用层计算折扣逻辑
+      if (coupon.type == 1) {
+        print('减免金额: ¥${coupon.value}');
+      } else if (coupon.type == 2) {
+        print('折扣比例: ${coupon.value}%');
+      }
+    }
+    
+    // 获取可用优惠券列表
+    final availableCoupons = await XBoardSDK.instance.coupon.getAvailableCoupons(planId: 123);
+    if (availableCoupons.success && availableCoupons.data != null) {
+      print('可用优惠券数量: ${availableCoupons.data!.length}');
+      for (final coupon in availableCoupons.data!) {
+        print('- ${coupon.code}: ${coupon.name}');
+      }
+    }
+    
+    // 获取优惠券使用历史
+    final couponHistory = await XBoardSDK.instance.coupon.getCouponHistory(page: 1, pageSize: 10);
+    if (couponHistory['success']) {
+      print('优惠券使用记录数量: ${couponHistory['data'].length}');
     }
   }
 }

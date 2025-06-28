@@ -2,6 +2,7 @@ import 'services/http_service.dart';
 import 'services/auth_service.dart';
 import 'services/subscription_service.dart';
 import 'services/balance_service.dart';
+import 'services/coupon_service.dart';
 import 'utils/subscription_cache.dart';
 import 'exceptions/xboard_exceptions.dart';
 
@@ -17,6 +18,7 @@ class XBoardSDK {
   late AuthService _authService;
   late SubscriptionService _subscriptionService;
   late BalanceService _balanceService;
+  late CouponService _couponService;
   
   String? _authToken;
   bool _isInitialized = false;
@@ -42,6 +44,7 @@ class XBoardSDK {
     _authService = AuthService(_httpService);
     _subscriptionService = SubscriptionService(_httpService);
     _balanceService = BalanceService(_httpService);
+    _couponService = CouponService(_httpService);
     
     // 初始化订阅缓存
     await SubscriptionCache.init();
@@ -82,6 +85,9 @@ class XBoardSDK {
 
   /// 余额服务
   BalanceService get balance => _balanceService;
+
+  /// 优惠券服务
+  CouponService get coupon => _couponService;
 
   /// 获取基础URL
   String? get baseUrl => _httpService.baseUrl;

@@ -45,6 +45,30 @@
 - `/api/v1/passport/auth/forget` - 密码重置
 - `/api/v1/passport/comm/sendEmailVerify` - 发送邮箱验证码
 
+## [0.4.0] - 2024-12-19
+
+### ✨ 新增功能
+- **🎫 优惠券管理服务**: 完整的优惠券API封装
+  - 优惠券验证 (`checkCoupon()`)
+  - 获取可用优惠券列表 (`getAvailableCoupons()`)
+  - 优惠券使用历史查询 (`getCouponHistory()`)
+
+### 📊 数据模型
+- `CouponData`: 优惠券基础数据模型
+- `CouponResponse`: 优惠券验证响应模型
+- `AvailableCouponsResponse`: 可用优惠券列表响应模型
+
+### 🎯 设计原则
+- **纯API封装**: 只提供API调用，不包含业务逻辑
+- **数据结构**: 专注于数据模型定义和网络请求处理
+- **简洁明了**: 移除折扣计算、格式验证等业务逻辑
+- **应用层实现**: 业务逻辑由使用SDK的应用自己实现
+
+### 📖 文档
+- 更新README，添加优惠券功能完整文档
+- 强调SDK只负责API调用的设计理念
+- 提供简洁的使用示例和API参考
+
 ## [0.3.0] - 2024-12-19
 
 ### ✨ 新增功能

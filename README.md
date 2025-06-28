@@ -386,6 +386,12 @@ MIT License
 - **集成测试**: 真实API环境集成测试
 - **模拟数据**: 支持测试环境和生产环境
 
+### 🎫 优惠券管理
+- **优惠券验证**: 验证优惠码有效性和适用性
+- **可用优惠券**: 获取用户可用的优惠券列表
+- **使用历史**: 查看优惠券使用记录
+- **纯数据API**: 只提供API调用，业务逻辑由应用层实现
+
 ## 🚀 快速开始
 
 ### 1. 添加依赖
@@ -513,6 +519,41 @@ final commissionHistory = await XBoardSDK.instance.balance.getCommissionHistory(
 );
 if (commissionHistory['success']) {
   print('佣金记录数量: ${commissionHistory['data'].length}');
+}
+```
+
+### 优惠券管理
+
+```dart
+// 验证优惠券
+final response = await XBoardSDK.instance.coupon.checkCoupon('SAVE20', 123);
+if (response.success && response.data != null) {
+  final coupon = response.data!;
+  print('优惠券名称: ${coupon.name}');
+  print('折扣类型: ${coupon.type}'); // 1: 金额折扣, 2: 百分比折扣
+  print('折扣值: ${coupon.value}');
+  
+  // 应用层计算折扣逻辑（SDK不包含业务逻辑）
+  if (coupon.type == 1) {
+    print('减免金额: ¥${coupon.value}');
+  } else if (coupon.type == 2) {
+    print('折扣比例: ${coupon.value}%');
+  }
+}
+
+// 获取可用优惠券列表
+final availableCoupons = await XBoardSDK.instance.coupon.getAvailableCoupons(planId: 123);
+if (availableCoupons.success && availableCoupons.data != null) {
+  print('可用优惠券数量: ${availableCoupons.data!.length}');
+  for (final coupon in availableCoupons.data!) {
+    print('- ${coupon.code}: ${coupon.name}');
+  }
+}
+
+// 获取优惠券使用历史
+final history = await XBoardSDK.instance.coupon.getCouponHistory(page: 1, pageSize: 20);
+if (history['success']) {
+  print('使用记录数量: ${history['data'].length}');
 }
 ```
 
@@ -668,5 +709,59 @@ class WithdrawResult {
   final String? message;      // 结果消息
   final String? withdrawId;   // 提现订单ID
   final String? status;       // 提现状态
+}
+```
+
+#### 优惠券数据模型
+
+```dart
+class CouponData {
+  final String? id;                // 优惠券ID
+  final String? name;              // 优惠券名称
+  final String? code;              // 优惠码
+  final int? type;                 // 折扣类型 (1: 金额折扣, 2: 百分比折扣)
+  final double? value;             // 折扣值
+  final int? limitUse;             // 使用限制次数
+  final int? limitUseWithUser;     // 单用户使用限制
+  final DateTime? startedAt;       // 开始时间
+  final DateTime? endedAt;         // 结束时间
+  final bool? show;                // 是否显示
+}
+```
+
+#### 优惠券响应模型
+
+```dart
+class CouponResponse {
+  final bool success;              // 是否成功
+  final String? message;           // 响应消息
+  final CouponData? data;          // 优惠券数据
+  final Map<String, dynamic>? errors; // 错误信息
+}
+```
+
+#### 优惠券列表响应模型
+
+```dart
+class AvailableCouponsResponse {
+  final bool success;              // 是否成功
+  final String? message;           // 响应消息
+  final List<CouponData>? data;    // 优惠券列表
+  final int? total;                // 总数量
+}
+```
+
+### CouponService 优惠券服务
+
+```dart
+class CouponService {
+  // 验证优惠券
+  Future<CouponResponse> checkCoupon(String code, int planId);
+  
+  // 获取可用优惠券列表
+  Future<AvailableCouponsResponse> getAvailableCoupons({int? planId});
+  
+  // 获取优惠券使用历史
+  Future<Map<String, dynamic>> getCouponHistory({int page = 1, int pageSize = 20});
 }
 ```
