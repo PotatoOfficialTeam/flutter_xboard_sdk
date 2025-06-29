@@ -189,18 +189,4 @@ class RegistrationConfig {
   bool get isEmailVerifyBool => isEmailVerify == 1;
   bool get isInviteForceBool => isInviteForce == 1;
   bool get isRecaptchaBool => isRecaptcha == 1;
-
-  Map<String, dynamic> toJson() {
-    return {
-      'tos_url': tosUrl,
-      'is_email_verify': isEmailVerify,
-      'is_invite_force': isInviteForce,
-      'email_whitelist_suffix': emailWhitelistSuffix,
-      'is_recaptcha': isRecaptcha,
-      'recaptcha_site_key': recaptchaSiteKey,
-      'app_description': appDescription,
-      'app_url': appUrl,
-      'logo': logo,
-    };
-  }
-}
+} 
