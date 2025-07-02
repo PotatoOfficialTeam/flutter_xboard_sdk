@@ -10,6 +10,7 @@ import 'services/plan_service.dart';
 import 'services/ticket_service.dart';
 import 'utils/subscription_cache.dart';
 import 'exceptions/xboard_exceptions.dart';
+import 'services/user_info_service.dart';
 
 /// XBoard SDK主类
 /// 提供对XBoard API的统一访问接口
@@ -29,6 +30,7 @@ class XBoardSDK {
   late PaymentService _paymentService;
   late PlanService _planService;
   late TicketService _ticketService;
+  late UserInfoService _userInfoService;
   
   String? _authToken;
   bool _isInitialized = false;
@@ -60,6 +62,7 @@ class XBoardSDK {
     _paymentService = PaymentService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
     _planService = PlanService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
     _ticketService = TicketService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
+    _userInfoService = UserInfoService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
     
     // 初始化订阅缓存
     await SubscriptionCache.init();
@@ -118,6 +121,9 @@ class XBoardSDK {
 
   /// 工单服务
   TicketService get ticket => _ticketService;
+
+  /// 用户信息服务
+  UserInfoService get userInfo => _userInfoService;
 
   /// 获取基础URL
   String? get baseUrl => _httpService.baseUrl;

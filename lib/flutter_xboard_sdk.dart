@@ -15,6 +15,7 @@ export 'src/services/order_service.dart';
 export 'src/services/payment_service.dart';
 export 'src/services/plan_service.dart';
 export 'src/services/ticket_service.dart';
+export 'src/services/user_info_service.dart';
 
 // 导出数据模型
 export 'src/models/auth_models.dart';
@@ -27,6 +28,7 @@ export 'src/models/order_models.dart';
 export 'src/models/payment_models.dart';
 export 'src/models/plan_models.dart';
 export 'src/models/ticket_models.dart';
+export 'src/models/user_info_models.dart';
 
 // 导出异常类
 export 'src/exceptions/xboard_exceptions.dart';
