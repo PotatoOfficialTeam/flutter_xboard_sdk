@@ -3,6 +3,10 @@ import 'services/auth_service.dart';
 import 'services/subscription_service.dart';
 import 'services/balance_service.dart';
 import 'services/coupon_service.dart';
+import 'services/notice_service.dart';
+import 'services/order_service.dart';
+import 'services/payment_service.dart';
+import 'services/plan_service.dart';
 import 'utils/subscription_cache.dart';
 import 'exceptions/xboard_exceptions.dart';
 
@@ -19,6 +23,10 @@ class XBoardSDK {
   late SubscriptionService _subscriptionService;
   late BalanceService _balanceService;
   late CouponService _couponService;
+  late NoticeService _noticeService;
+  late OrderService _orderService;
+  late PaymentService _paymentService;
+  late PlanService _planService;
   
   String? _authToken;
   bool _isInitialized = false;
@@ -45,6 +53,10 @@ class XBoardSDK {
     _subscriptionService = SubscriptionService(_httpService);
     _balanceService = BalanceService(_httpService);
     _couponService = CouponService(_httpService);
+    _noticeService = NoticeService(_httpService);
+    _orderService = OrderService(_httpService);
+    _paymentService = PaymentService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
+    _planService = PlanService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
     
     // 初始化订阅缓存
     await SubscriptionCache.init();
@@ -88,6 +100,18 @@ class XBoardSDK {
 
   /// 优惠券服务
   CouponService get coupon => _couponService;
+
+  /// 通知服务
+  NoticeService get notice => _noticeService;
+
+  /// 订单服务
+  OrderService get order => _orderService;
+
+  /// 支付服务
+  PaymentService get payment => _paymentService;
+
+  /// 套餐服务
+  PlanService get plan => _planService;
 
   /// 获取基础URL
   String? get baseUrl => _httpService.baseUrl;

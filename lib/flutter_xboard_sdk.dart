@@ -10,6 +10,10 @@ export 'src/services/subscription_service.dart';
 export 'src/services/balance_service.dart';
 export 'src/services/coupon_service.dart';
 export 'src/services/invite_service.dart';
+export 'src/services/notice_service.dart';
+export 'src/services/order_service.dart';
+export 'src/services/payment_service.dart';
+export 'src/services/plan_service.dart';
 
 // 导出数据模型
 export 'src/models/auth_models.dart';
@@ -17,6 +21,10 @@ export 'src/models/subscription_models.dart';
 export 'src/models/balance_models.dart';
 export 'src/models/coupon_models.dart';
 export 'src/models/invite_models.dart';
+export 'src/models/notice_models.dart';
+export 'src/models/order_models.dart';
+export 'src/models/payment_models.dart';
+export 'src/models/plan_models.dart';
 
 // 导出异常类
 export 'src/exceptions/xboard_exceptions.dart';
