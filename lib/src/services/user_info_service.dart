@@ -1,37 +1,33 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/user_info_models.dart';
-import '../utils/subscription_cache.dart';
 
 /// 用户信息服务
 class UserInfoService {
   final String _baseUrl;
-  final Map<String, String> _defaultHeaders;
+  final Map<String, String> _headers;
 
-  UserInfoService(this._baseUrl, this._defaultHeaders);
+  UserInfoService(this._baseUrl, this._headers);
 
   /// 获取用户信息
-  Future<UserInfo?> fetchUserInfo() async {
-    final accessToken = await SubscriptionCache.getAccessToken();
-    if (accessToken == null) {
-      throw Exception('未找到访问令牌，请先登录');
-    }
-    final response = await http.get(
-      Uri.parse('$_baseUrl/api/v1/user/info'),
-      headers: {
-        ..._defaultHeaders,
-        'Authorization': accessToken,
-      },
-    );
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data['data'] != null) {
-        return UserInfo.fromJson(data['data']);
+  Future<Map<String, dynamic>> getUserInfo() async {
+    final client = http.Client();
+    try {
+      final response = await client.get(
+        Uri.parse('$_baseUrl/api/v1/user/info'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['data'] != null) {
+          return data['data'];
+        } else {
+          throw Exception(data['message'] ?? '获取用户信息失败');
+        }
       } else {
-        throw Exception(data['message'] ?? '获取用户信息失败');
+        throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
       }
-    } else {
-      throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+    } finally {
+      client.close();
     }
   }
 
@@ -40,7 +36,7 @@ class UserInfoService {
     final response = await http.get(
       Uri.parse('$_baseUrl/api/v1/user/getSubscribe'),
       headers: {
-        ..._defaultHeaders,
+        ..._headers,
         'Authorization': token,
       },
     );
@@ -58,16 +54,9 @@ class UserInfoService {
 
   /// 获取订阅链接
   Future<String?> getSubscriptionLink() async {
-    final accessToken = await SubscriptionCache.getAccessToken();
-    if (accessToken == null) {
-      throw Exception('未找到访问令牌，请先登录');
-    }
     final response = await http.get(
       Uri.parse('$_baseUrl/api/v1/user/getSubscribe'),
-      headers: {
-        ..._defaultHeaders,
-        'Authorization': accessToken,
-      },
+      headers: _headers,
     );
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -79,16 +68,9 @@ class UserInfoService {
 
   /// 重置订阅链接
   Future<String?> resetSubscriptionLink() async {
-    final accessToken = await SubscriptionCache.getAccessToken();
-    if (accessToken == null) {
-      throw Exception('未找到访问令牌，请先登录');
-    }
     final response = await http.get(
       Uri.parse('$_baseUrl/api/v1/user/resetSecurity'),
-      headers: {
-        ..._defaultHeaders,
-        'Authorization': accessToken,
-      },
+      headers: _headers,
     );
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -100,15 +82,10 @@ class UserInfoService {
 
   /// 切换流量提醒
   Future<bool> toggleTrafficReminder(int value) async {
-    final accessToken = await SubscriptionCache.getAccessToken();
-    if (accessToken == null) {
-      throw Exception('未找到访问令牌，请先登录');
-    }
     final response = await http.post(
       Uri.parse('$_baseUrl/api/v1/user/update'),
       headers: {
-        ..._defaultHeaders,
-        'Authorization': accessToken,
+        ..._headers,
         'Content-Type': 'application/json',
       },
       body: json.encode({'remind_traffic': value}),
@@ -123,15 +100,10 @@ class UserInfoService {
 
   /// 切换到期提醒
   Future<bool> toggleExpireReminder(int value) async {
-    final accessToken = await SubscriptionCache.getAccessToken();
-    if (accessToken == null) {
-      throw Exception('未找到访问令牌，请先登录');
-    }
     final response = await http.post(
       Uri.parse('$_baseUrl/api/v1/user/update'),
       headers: {
-        ..._defaultHeaders,
-        'Authorization': accessToken,
+        ..._headers,
         'Content-Type': 'application/json',
       },
       body: json.encode({'remind_expire': value}),

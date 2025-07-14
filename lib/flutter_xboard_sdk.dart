@@ -24,11 +24,11 @@ export 'src/models/balance_models.dart';
 export 'src/models/coupon_models.dart';
 export 'src/models/invite_models.dart';
 export 'src/models/notice_models.dart';
-export 'src/models/order_models.dart';
+export 'src/models/order_models.dart' hide Plan, PlanResponse, PaymentResponse;
 export 'src/models/payment_models.dart';
 export 'src/models/plan_models.dart';
 export 'src/models/ticket_models.dart';
-export 'src/models/user_info_models.dart';
+export 'src/models/user_info_models.dart' hide UserInfo;
 
 // 导出异常类
 export 'src/exceptions/xboard_exceptions.dart';

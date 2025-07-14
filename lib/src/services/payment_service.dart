@@ -1,33 +1,25 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/payment_models.dart';
-import '../utils/subscription_cache.dart';
 
 /// 支付服务
 /// 
 /// 提供完整的支付功能，包括获取支付方式、创建支付订单、处理支付流程等
 class PaymentService {
   final String _baseUrl;
-  final Map<String, String> _defaultHeaders;
+  final Map<String, String> _headers;
 
-  PaymentService(this._baseUrl, this._defaultHeaders);
+  PaymentService(this._baseUrl, this._headers);
 
   /// 获取支付方式列表
   /// 
   /// 返回当前可用的所有支付方式
   Future<List<PaymentMethodInfo>> getPaymentMethods() async {
+    final client = http.Client();
     try {
-      final accessToken = await SubscriptionCache.getAccessToken();
-      if (accessToken == null) {
-        throw PaymentError.noToken();
-      }
-
-      final response = await http.get(
+      final response = await client.get(
         Uri.parse('$_baseUrl/api/v1/user/order/getPaymentMethod'),
-        headers: {
-          ..._defaultHeaders,
-          'Authorization': accessToken,
-        },
+        headers: _headers,
       );
 
       if (response.statusCode == 200) {
@@ -76,12 +68,8 @@ class PaymentService {
   /// [request] 支付请求参数
   /// 返回支付响应，包含支付结果信息
   Future<PaymentResponse> submitOrderPayment(PaymentRequest request) async {
+    final client = http.Client();
     try {
-      final accessToken = await SubscriptionCache.getAccessToken();
-      if (accessToken == null) {
-        throw PaymentError.noToken();
-      }
-
       // 验证支付方式是否可用
       final paymentMethod = await getPaymentMethodById(request.method);
       if (paymentMethod == null) {
@@ -92,11 +80,10 @@ class PaymentService {
         throw PaymentError.paymentMethodUnavailable('Payment method ${request.method} is not available');
       }
 
-      final response = await http.post(
+      final response = await client.post(
         Uri.parse('$_baseUrl/api/v1/user/order/checkout'),
         headers: {
-          ..._defaultHeaders,
-          'Authorization': accessToken,
+          ..._headers,
           'Content-Type': 'application/json',
         },
         body: json.encode(request.toJson()),
@@ -119,18 +106,11 @@ class PaymentService {
   /// [tradeNo] 订单交易号
   /// 返回支付状态结果
   Future<PaymentStatusResult> checkPaymentStatus(String tradeNo) async {
+    final client = http.Client();
     try {
-      final accessToken = await SubscriptionCache.getAccessToken();
-      if (accessToken == null) {
-        throw PaymentError.noToken();
-      }
-
-      final response = await http.get(
+      final response = await client.get(
         Uri.parse('$_baseUrl/api/v1/user/order/status?trade_no=$tradeNo'),
-        headers: {
-          ..._defaultHeaders,
-          'Authorization': accessToken,
-        },
+        headers: _headers,
       );
 
       if (response.statusCode == 200) {
@@ -172,17 +152,12 @@ class PaymentService {
   /// 
   /// [tradeNo] 订单交易号
   Future<bool> cancelPayment(String tradeNo) async {
+    final client = http.Client();
     try {
-      final accessToken = await SubscriptionCache.getAccessToken();
-      if (accessToken == null) {
-        throw PaymentError.noToken();
-      }
-
-      final response = await http.post(
+      final response = await client.post(
         Uri.parse('$_baseUrl/api/v1/user/order/cancel'),
         headers: {
-          ..._defaultHeaders,
-          'Authorization': accessToken,
+          ..._headers,
           'Content-Type': 'application/json',
         },
         body: json.encode({'trade_no': tradeNo}),
@@ -234,12 +209,6 @@ class PaymentService {
   /// [request] 支付请求
   /// 验证支付条件是否满足
   Future<void> preCheckPayment(PaymentRequest request) async {
-    // 检查Token
-    final accessToken = await SubscriptionCache.getAccessToken();
-    if (accessToken == null) {
-      throw PaymentError.noToken();
-    }
-
     // 检查支付方式
     final paymentMethod = await getPaymentMethodById(request.method);
     if (paymentMethod == null) {
@@ -376,18 +345,11 @@ class PaymentService {
     int limit = 20,
     int offset = 0,
   }) async {
+    final client = http.Client();
     try {
-      final accessToken = await SubscriptionCache.getAccessToken();
-      if (accessToken == null) {
-        throw PaymentError.noToken();
-      }
-
-      final response = await http.get(
+      final response = await client.get(
         Uri.parse('$_baseUrl/api/v1/user/payment/history?limit=$limit&offset=$offset'),
-        headers: {
-          ..._defaultHeaders,
-          'Authorization': accessToken,
-        },
+        headers: _headers,
       );
 
       if (response.statusCode == 200) {
@@ -411,18 +373,11 @@ class PaymentService {
   /// 
   /// 返回支付相关的统计数据
   Future<Map<String, dynamic>> getPaymentStats() async {
+    final client = http.Client();
     try {
-      final accessToken = await SubscriptionCache.getAccessToken();
-      if (accessToken == null) {
-        throw PaymentError.noToken();
-      }
-
-      final response = await http.get(
+      final response = await client.get(
         Uri.parse('$_baseUrl/api/v1/user/payment/stats'),
-        headers: {
-          ..._defaultHeaders,
-          'Authorization': accessToken,
-        },
+        headers: _headers,
       );
 
       if (response.statusCode == 200) {
