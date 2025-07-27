@@ -82,16 +82,18 @@ class UserInfo {
   });
 
   factory UserInfo.fromJson(Map<String, dynamic> json) {
-    return UserInfo(
-      email: json['email'] as String? ?? '',
-      transferEnable: (json['transfer_enable'] as num?)?.toDouble() ?? 0.0,
-      lastLoginAt: json['last_login_at'] as int?,
-      createdAt: json['created_at'] as int? ?? 0,
-      banned: (json['banned'] as int? ?? 0) == 1,
-      remindExpire: (json['remind_expire'] as int? ?? 0) == 1,
-      remindTraffic: (json['remind_traffic'] as int? ?? 0) == 1,
-      expiredAt: json['expired_at'] as int?,
-      balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
+    print('UserInfo.fromJson - 原始JSON: $json');
+    try {
+      return UserInfo(
+        email: json['email'] as String? ?? '',
+        transferEnable: (json['transfer_enable'] as num?)?.toDouble() ?? 0.0,
+        lastLoginAt: json['last_login_at'] as int?,
+        createdAt: json['created_at'] as int? ?? 0,
+        banned: json['banned'] as bool? ?? false,
+        remindExpire: json['remind_expire'] as bool? ?? false,
+        remindTraffic: json['remind_traffic'] as bool? ?? false,
+        expiredAt: json['expired_at'] as int?,
+        balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
       commissionBalance: (json['commission_balance'] as num?)?.toDouble() ?? 0.0,
       planId: json['plan_id'] as int? ?? 0,
       discount: (json['discount'] as num?)?.toDouble(),
@@ -100,6 +102,11 @@ class UserInfo {
       uuid: json['uuid'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String? ?? '',
     );
+    } catch (e, stackTrace) {
+      print('UserInfo.fromJson 解析失败: $e');
+      print('堆栈跟踪: $stackTrace');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -108,9 +115,9 @@ class UserInfo {
       'transfer_enable': transferEnable,
       'last_login_at': lastLoginAt,
       'created_at': createdAt,
-      'banned': banned ? 1 : 0,
-      'remind_expire': remindExpire ? 1 : 0,
-      'remind_traffic': remindTraffic ? 1 : 0,
+      'banned': banned,
+      'remind_expire': remindExpire,
+      'remind_traffic': remindTraffic,
       'expired_at': expiredAt,
       'balance': balance,
       'commission_balance': commissionBalance,
