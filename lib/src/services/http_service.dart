@@ -19,6 +19,11 @@ class HttpService {
     _authToken = null;
   }
 
+  /// 获取当前认证token
+  String? getAuthToken() {
+    return _authToken;
+  }
+
   /// 发送GET请求
   Future<Map<String, dynamic>> getRequest(String path, {Map<String, String>? headers}) async {
     return _sendRequest('GET', path, headers: headers);
@@ -48,6 +53,11 @@ class HttpService {
   }) async {
     try {
       final uri = Uri.parse('$baseUrl$path');
+      print('[HttpService] $method $uri');
+      if (data != null) {
+        print('[HttpService] 请求数据: $data');
+      }
+      
       final request = await _httpClient.openUrl(method, uri);
 
       // 设置请求头
@@ -75,6 +85,9 @@ class HttpService {
       // 发送请求并获取响应
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
+      
+      print('[HttpService] 响应状态: ${response.statusCode}');
+      print('[HttpService] 响应内容: $responseBody');
 
       return _handleResponse(response.statusCode, responseBody);
     } on SocketException catch (e) {

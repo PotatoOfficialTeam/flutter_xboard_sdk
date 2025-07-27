@@ -59,10 +59,10 @@ class XBoardSDK {
     _couponService = CouponService(_httpService);
     _noticeService = NoticeService(_httpService);
     _orderService = OrderService(_httpService);
-    _paymentService = PaymentService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
-    _planService = PlanService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
-    _ticketService = TicketService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
-    _userInfoService = UserInfoService(cleanUrl, {'User-Agent': 'XBoard-SDK'});
+    _paymentService = PaymentService(_httpService);
+    _planService = PlanService(_httpService);
+    _ticketService = TicketService(_httpService);
+    _userInfoService = UserInfoService(_httpService);
     
     // 初始化订阅缓存
     await SubscriptionCache.init();

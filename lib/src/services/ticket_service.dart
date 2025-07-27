@@ -1,35 +1,28 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'http_service.dart';
 import '../models/ticket_models.dart';
+import '../exceptions/xboard_exceptions.dart';
 
 /// 工单服务
 class TicketService {
-  final String _baseUrl;
-  final Map<String, String> _headers;
+  final HttpService _httpService;
 
-  TicketService(this._baseUrl, this._headers);
+  TicketService(this._httpService);
 
   /// 获取工单列表
   Future<List<Ticket>> fetchTickets() async {
-    final client = http.Client();
     try {
-      final response = await client.get(
-        Uri.parse('$_baseUrl/api/v1/user/ticket/fetch'),
-        headers: _headers,
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] != 'success') {
-          throw Exception(data['message'] ?? '获取工单失败');
-        }
-        return (data['data'] as List)
-            .map((e) => Ticket.fromJson(e))
-            .toList();
-      } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+      final result = await _httpService.getRequest('/api/v1/user/ticket/fetch');
+      
+      if (result['success'] != true && result['status'] != 'success') {
+        throw ApiException(result['message']?.toString() ?? '获取工单失败');
       }
-    } finally {
-      client.close();
+      
+      return (result['data'] as List)
+          .map((e) => Ticket.fromJson(e))
+          .toList();
+    } catch (e) {
+      if (e is XBoardException) rethrow;
+      throw ApiException('获取工单列表时发生错误: $e');
     }
   }
 
@@ -39,117 +32,79 @@ class TicketService {
     required String message,
     required int level,
   }) async {
-    final client = http.Client();
     try {
-      final response = await client.post(
-        Uri.parse('$_baseUrl/api/v1/user/ticket/save'),
-        headers: {
-          ..._headers,
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'subject': subject,
-          'message': message,
-          'level': level,
-        }),
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'success') {
-          if (data['data'] is Map<String, dynamic>) {
-            return Ticket.fromJson(data['data']);
-          } else {
-            // 兼容后端返回data为true时，重新拉取工单列表取最新一条
-            final tickets = await fetchTickets();
-            if (tickets.isNotEmpty) {
-              return tickets.first;
-            } else {
-              throw Exception('创建工单成功，但无法获取新工单详情');
-            }
-          }
-        } else {
-          throw Exception(data['message'] ?? '创建工单失败');
-        }
-      } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+      final result = await _httpService.postRequest('/api/v1/user/ticket/save', {
+        'subject': subject,
+        'message': message,
+        'level': level,
+      });
+      
+      if (result['success'] != true && result['status'] != 'success') {
+        throw ApiException(result['message']?.toString() ?? '创建工单失败');
       }
-    } finally {
-      client.close();
+      
+      if (result['data'] is Map<String, dynamic>) {
+        return Ticket.fromJson(result['data']);
+      } else {
+        // 兼容后端返回data为true时，重新拉取工单列表取最新一条
+        final tickets = await fetchTickets();
+        if (tickets.isNotEmpty) {
+          return tickets.first;
+        } else {
+          throw ApiException('创建工单成功，但无法获取新工单详情');
+        }
+      }
+    } catch (e) {
+      if (e is XBoardException) rethrow;
+      throw ApiException('创建工单时发生错误: $e');
     }
   }
 
   /// 获取工单详情（含消息）
   Future<TicketDetail> getTicketDetail(int ticketId) async {
-    final client = http.Client();
     try {
-      final response = await client.get(
-        Uri.parse('$_baseUrl/api/v1/user/ticket/fetch?id=$ticketId'),
-        headers: _headers,
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'success' && data['data'] != null) {
-          return TicketDetail.fromJson(data['data']);
-        } else {
-          throw Exception(data['message'] ?? '获取工单详情失败');
-        }
-      } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+      final result = await _httpService.getRequest('/api/v1/user/ticket/fetch?id=$ticketId');
+      
+      if (result['success'] != true && result['status'] != 'success') {
+        throw ApiException(result['message']?.toString() ?? '获取工单详情失败');
       }
-    } finally {
-      client.close();
+      
+      return TicketDetail.fromJson(result['data']);
+    } catch (e) {
+      if (e is XBoardException) rethrow;
+      throw ApiException('获取工单详情时发生错误: $e');
     }
   }
 
   /// 回复工单
-  Future<bool> replyToTicket({
+  Future<bool> replyTicket({
     required int ticketId,
     required String message,
   }) async {
-    final client = http.Client();
     try {
-      final response = await client.post(
-        Uri.parse('$_baseUrl/api/v1/user/ticket/reply'),
-        headers: {
-          ..._headers,
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'id': ticketId,
-          'message': message,
-        }),
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['status'] == 'success';
-      } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
-      }
-    } finally {
-      client.close();
+      final result = await _httpService.postRequest('/api/v1/user/ticket/reply', {
+        'id': ticketId,
+        'message': message,
+      });
+      
+      return result['success'] == true || result['status'] == 'success';
+    } catch (e) {
+      if (e is XBoardException) rethrow;
+      throw ApiException('回复工单时发生错误: $e');
     }
   }
 
   /// 关闭工单
   Future<bool> closeTicket(int ticketId) async {
-    final client = http.Client();
     try {
-      final response = await client.post(
-        Uri.parse('$_baseUrl/api/v1/user/ticket/close'),
-        headers: {
-          ..._headers,
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({'id': ticketId}),
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['status'] == 'success';
-      } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
-      }
-    } finally {
-      client.close();
+      final result = await _httpService.postRequest('/api/v1/user/ticket/close', {
+        'id': ticketId,
+      });
+      
+      return result['success'] == true || result['status'] == 'success';
+    } catch (e) {
+      if (e is XBoardException) rethrow;
+      throw ApiException('关闭工单时发生错误: $e');
     }
   }
-} 
+}

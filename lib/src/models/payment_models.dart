@@ -599,9 +599,14 @@ class PaymentResponse {
   factory PaymentResponse.fromJson(Map<String, dynamic> json) {
     PaymentResult? result;
     
+    print('[PaymentResponse] 开始解析JSON: $json');
+    
     // 解析支付结果
     final data = json['data'] as Map<String, dynamic>?;
+    print('[PaymentResponse] 提取的data字段: $data');
+    
     if (data != null) {
+      // 检查是否是重定向类型
       if (data.containsKey('redirect_url') || data.containsKey('url')) {
         final url = data['redirect_url'] ?? data['url'];
         if (url != null) {
@@ -609,6 +614,30 @@ class PaymentResponse {
             url: url.toString(),
             method: data['method'] as String?,
             headers: data['headers'] as Map<String, String>?,
+          );
+        }
+      } else if (data.containsKey('type') && data.containsKey('data')) {
+        // 处理 type + data 格式的响应
+        final type = data['type'];
+        final paymentData = data['data'];
+        
+        print('[PaymentResponse] 发现type+data格式，type=$type, paymentData=$paymentData');
+        
+        if (type == 1 && paymentData is String && paymentData.startsWith('http')) {
+          // type=1 且 data 是 URL，表示重定向
+          print('[PaymentResponse] 识别为重定向类型，URL=$paymentData');
+          result = PaymentResult.redirect(
+            url: paymentData,
+            method: data['method'] as String?,
+            headers: data['headers'] as Map<String, String>?,
+          );
+        } else {
+          // 其他类型暂时作为成功处理
+          print('[PaymentResponse] 不符合重定向条件，作为成功处理');
+          result = PaymentResult.success(
+            transactionId: data['transaction_id'] as String?,
+            message: data['message'] as String?,
+            extra: data,
           );
         }
       } else if (json['success'] == true || data['status'] == 'success') {

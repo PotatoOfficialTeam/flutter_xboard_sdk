@@ -1,35 +1,28 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'http_service.dart';
 import '../models/plan_models.dart';
+import '../exceptions/xboard_exceptions.dart';
 
 /// 套餐/计划服务
 class PlanService {
-  final String _baseUrl;
-  final Map<String, String> _headers;
+  final HttpService _httpService;
 
-  PlanService(this._baseUrl, this._headers);
+  PlanService(this._httpService);
 
   /// 获取套餐列表
   Future<List<Plan>> fetchPlans() async {
-    final client = http.Client();
     try {
-      final response = await client.get(
-        Uri.parse('$_baseUrl/api/v1/user/plan/fetch'),
-        headers: _headers,
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == false) {
-          throw Exception(data['message'] ?? '获取套餐失败');
-        }
-        return (data['data'] as List)
-            .map((e) => Plan.fromJson(e))
-            .toList();
-      } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+      final result = await _httpService.getRequest('/api/v1/user/plan/fetch');
+      
+      if (result['success'] != true) {
+        throw ApiException(result['message']?.toString() ?? '获取套餐失败');
       }
+      
+      return (result['data'] as List)
+          .map((e) => Plan.fromJson(e))
+          .toList();
     } catch (e) {
-      throw Exception('获取套餐列表时发生错误: $e');
+      if (e is XBoardException) rethrow;
+      throw ApiException('获取套餐列表时发生错误: $e');
     }
   }
 

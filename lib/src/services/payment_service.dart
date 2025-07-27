@@ -1,43 +1,40 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../models/payment_models.dart';
+import 'http_service.dart';
 
 /// 支付服务
 /// 
 /// 提供完整的支付功能，包括获取支付方式、创建支付订单、处理支付流程等
 class PaymentService {
-  final String _baseUrl;
-  final Map<String, String> _headers;
+  final HttpService _httpService;
 
-  PaymentService(this._baseUrl, this._headers);
+  PaymentService(this._httpService);
 
   /// 获取支付方式列表
   /// 
   /// 返回当前可用的所有支付方式
   Future<List<PaymentMethodInfo>> getPaymentMethods() async {
-    final client = http.Client();
     try {
-      final response = await client.get(
-        Uri.parse('$_baseUrl/api/v1/user/order/getPaymentMethod'),
-        headers: _headers,
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        
-        if (data['success'] != true) {
-          throw PaymentError.invalidResponse(data['message']?.toString());
-        }
-
-        final methodsList = (data['data'] as List).cast<Map<String, dynamic>>();
-        return methodsList
-            .map((json) => PaymentMethodInfo.fromJson(json))
-            .where((method) => method.isAvailable)
-            .toList();
-      } else {
-        throw PaymentError.networkError('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+      print('[PaymentService] 开始获取支付方式列表...');
+      final result = await _httpService.getRequest('/api/v1/user/order/getPaymentMethod');
+      print('[PaymentService] 支付方式API返回: $result');
+      
+      if (result['success'] != true) {
+        print('[PaymentService] 支付方式获取失败: ${result['message']}');
+        throw PaymentError.invalidResponse(result['message']?.toString());
       }
+
+      final methodsList = (result['data'] as List).cast<Map<String, dynamic>>();
+      print('[PaymentService] 原始支付方式数据: $methodsList');
+      
+      final paymentMethods = methodsList
+          .map((json) => PaymentMethodInfo.fromJson(json))
+          .where((method) => method.isAvailable)
+          .toList();
+      
+      print('[PaymentService] 过滤后可用支付方式数量: ${paymentMethods.length}');
+      return paymentMethods;
     } catch (e) {
+      print('[PaymentService] 获取支付方式异常: $e');
       if (e is PaymentError) rethrow;
       throw PaymentError.fromException(e);
     }
@@ -68,34 +65,30 @@ class PaymentService {
   /// [request] 支付请求参数
   /// 返回支付响应，包含支付结果信息
   Future<PaymentResponse> submitOrderPayment(PaymentRequest request) async {
-    final client = http.Client();
     try {
+      print('[PaymentService] 开始提交订单支付，请求参数: ${request.toJson()}');
+      
       // 验证支付方式是否可用
       final paymentMethod = await getPaymentMethodById(request.method);
       if (paymentMethod == null) {
+        print('[PaymentService] 支付方式未找到: ${request.method}');
         throw PaymentError.paymentMethodUnavailable('Payment method ${request.method} not found');
       }
 
       if (!paymentMethod.isAvailable) {
+        print('[PaymentService] 支付方式不可用: ${request.method}');
         throw PaymentError.paymentMethodUnavailable('Payment method ${request.method} is not available');
       }
 
-      final response = await client.post(
-        Uri.parse('$_baseUrl/api/v1/user/order/checkout'),
-        headers: {
-          ..._headers,
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(request.toJson()),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return PaymentResponse.fromJson(data);
-      } else {
-        throw PaymentError.networkError('HTTP ${response.statusCode}: ${response.reasonPhrase}');
-      }
+      print('[PaymentService] 支付方式验证通过，开始调用checkout接口...');
+      final result = await _httpService.postRequest('/api/v1/user/order/checkout', request.toJson());
+      print('[PaymentService] checkout接口返回: $result');
+      
+      final response = PaymentResponse.fromJson(result);
+      print('[PaymentService] 支付响应解析完成: success=${response.success}, message=${response.message}');
+      return response;
     } catch (e) {
+      print('[PaymentService] 提交订单支付异常: $e');
       if (e is PaymentError) rethrow;
       throw PaymentError.fromException(e);
     }
@@ -106,41 +99,31 @@ class PaymentService {
   /// [tradeNo] 订单交易号
   /// 返回支付状态结果
   Future<PaymentStatusResult> checkPaymentStatus(String tradeNo) async {
-    final client = http.Client();
     try {
-      final response = await client.get(
-        Uri.parse('$_baseUrl/api/v1/user/order/status?trade_no=$tradeNo'),
-        headers: _headers,
-      );
+      final result = await _httpService.getRequest('/api/v1/user/order/status?trade_no=$tradeNo');
+      
+      if (result['success'] != true) {
+        throw PaymentError.invalidResponse(result['message']?.toString());
+      }
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        
-        if (data['success'] != true) {
-          throw PaymentError.invalidResponse(data['message']?.toString());
-        }
-
-        final statusData = data['data'] as Map<String, dynamic>;
-        final status = statusData['status']?.toString().toLowerCase();
-        
-        switch (status) {
-          case 'paid':
-          case 'success':
-          case 'completed':
-            return PaymentStatusResult.success(statusData['message'] as String?);
-          case 'cancelled':
-          case 'canceled':
-          case 'cancel':
-            return PaymentStatusResult.canceled(statusData['message'] as String?);
-          case 'pending':
-          case 'processing':
-          case 'waiting':
-            return PaymentStatusResult.pending(statusData['message'] as String?);
-          default:
-            return PaymentStatusResult.failed(statusData['message'] as String? ?? 'Unknown status: $status');
-        }
-      } else {
-        throw PaymentError.networkError('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+      final statusData = result['data'] as Map<String, dynamic>;
+      final status = statusData['status']?.toString().toLowerCase();
+      
+      switch (status) {
+        case 'paid':
+        case 'success':
+        case 'completed':
+          return PaymentStatusResult.success(statusData['message'] as String?);
+        case 'cancelled':
+        case 'canceled':
+        case 'cancel':
+          return PaymentStatusResult.canceled(statusData['message'] as String?);
+        case 'pending':
+        case 'processing':
+        case 'waiting':
+          return PaymentStatusResult.pending(statusData['message'] as String?);
+        default:
+          return PaymentStatusResult.failed(statusData['message'] as String? ?? 'Unknown status: $status');
       }
     } catch (e) {
       if (e is PaymentError) rethrow;
@@ -152,23 +135,9 @@ class PaymentService {
   /// 
   /// [tradeNo] 订单交易号
   Future<bool> cancelPayment(String tradeNo) async {
-    final client = http.Client();
     try {
-      final response = await client.post(
-        Uri.parse('$_baseUrl/api/v1/user/order/cancel'),
-        headers: {
-          ..._headers,
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({'trade_no': tradeNo}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['success'] == true;
-      } else {
-        throw PaymentError.networkError('HTTP ${response.statusCode}: ${response.reasonPhrase}');
-      }
+      final result = await _httpService.postRequest('/api/v1/user/order/cancel', {'trade_no': tradeNo});
+      return result['success'] == true;
     } catch (e) {
       if (e is PaymentError) rethrow;
       throw PaymentError.fromException(e);
@@ -249,10 +218,14 @@ class PaymentService {
 
       // 提交支付
       final response = await submitOrderPayment(request);
+      print('[PaymentService] processPayment响应: success=${response.success}, result=${response.result?.runtimeType}');
+      print('[PaymentService] processPayment响应数据: ${response.data}');
 
       if (response.success && response.result != null) {
+        print('[PaymentService] processPayment返回结果: ${response.result}');
         return response.result!;
       } else {
+        print('[PaymentService] processPayment失败，返回错误结果');
         return PaymentResult.failed(
           message: response.message ?? 'Payment failed',
           extra: response.data,
@@ -345,24 +318,14 @@ class PaymentService {
     int limit = 20,
     int offset = 0,
   }) async {
-    final client = http.Client();
     try {
-      final response = await client.get(
-        Uri.parse('$_baseUrl/api/v1/user/payment/history?limit=$limit&offset=$offset'),
-        headers: _headers,
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        
-        if (data['success'] != true) {
-          throw PaymentError.invalidResponse(data['message']?.toString());
-        }
-
-        return (data['data'] as List).cast<Map<String, dynamic>>();
-      } else {
-        throw PaymentError.networkError('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+      final result = await _httpService.getRequest('/api/v1/user/payment/history?limit=$limit&offset=$offset');
+      
+      if (result['success'] != true) {
+        throw PaymentError.invalidResponse(result['message']?.toString());
       }
+
+      return (result['data'] as List).cast<Map<String, dynamic>>();
     } catch (e) {
       if (e is PaymentError) rethrow;
       throw PaymentError.fromException(e);
@@ -373,24 +336,14 @@ class PaymentService {
   /// 
   /// 返回支付相关的统计数据
   Future<Map<String, dynamic>> getPaymentStats() async {
-    final client = http.Client();
     try {
-      final response = await client.get(
-        Uri.parse('$_baseUrl/api/v1/user/payment/stats'),
-        headers: _headers,
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        
-        if (data['success'] != true) {
-          throw PaymentError.invalidResponse(data['message']?.toString());
-        }
-
-        return data['data'] as Map<String, dynamic>;
-      } else {
-        throw PaymentError.networkError('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+      final result = await _httpService.getRequest('/api/v1/user/payment/stats');
+      
+      if (result['success'] != true) {
+        throw PaymentError.invalidResponse(result['message']?.toString());
       }
+
+      return result['data'] as Map<String, dynamic>;
     } catch (e) {
       if (e is PaymentError) rethrow;
       throw PaymentError.fromException(e);

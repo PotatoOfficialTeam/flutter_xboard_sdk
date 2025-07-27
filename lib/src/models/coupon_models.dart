@@ -7,7 +7,7 @@ class CouponData {
   final double? value; // 折扣值
   final int? limitUse; // 使用限制次数
   final int? limitUseWithUser; // 单用户使用限制
-  final int? limitPlanIds; // 限制的套餐ID
+  final List<String>? limitPlanIds; // 限制的套餐ID列表
   final DateTime? startedAt; // 开始时间
   final DateTime? endedAt; // 结束时间
   final bool? show; // 是否显示
@@ -39,7 +39,9 @@ class CouponData {
       value: json['value']?.toDouble(),
       limitUse: json['limit_use'],
       limitUseWithUser: json['limit_use_with_user'],
-      limitPlanIds: json['limit_plan_ids'],
+      limitPlanIds: json['limit_plan_ids'] != null 
+          ? (json['limit_plan_ids'] as List?)?.map((e) => e.toString()).toList()
+          : null,
       startedAt: json['started_at'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(json['started_at'] * 1000)
           : null,
