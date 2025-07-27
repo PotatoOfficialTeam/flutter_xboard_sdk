@@ -131,6 +131,66 @@ class PaymentService {
     }
   }
 
+  /// 检查订单状态（使用check接口）
+  /// 
+  /// [tradeNo] 订单交易号
+  /// 返回支付状态结果
+  Future<PaymentStatusResult> checkOrderStatus(String tradeNo) async {
+    try {
+      final result = await _httpService.getRequest('/api/v1/user/order/check?trade_no=$tradeNo');
+      
+      // 检查API是否返回成功状态
+      final apiStatus = result['status']?.toString().toLowerCase();
+      if (apiStatus != 'success') {
+        throw PaymentError.invalidResponse(result['message']?.toString() ?? 'API request failed');
+      }
+
+      // 获取支付状态，可能是整数或字符串
+      final paymentStatus = result['data'];
+      final message = result['message']?.toString();
+      
+      // 根据返回的data值判断支付状态
+      // 正确的状态码映射：0=等待支付, 2=已取消, 3=已支付
+      if (paymentStatus is int) {
+        switch (paymentStatus) {
+          case 3: // 已支付
+            return PaymentStatusResult.success(message);
+          case 2: // 已取消
+            return PaymentStatusResult.canceled(message);
+          case 0: // 等待支付
+          default: // 其他状态也认为是等待中
+            return PaymentStatusResult.pending(message);
+        }
+      } else if (paymentStatus is String) {
+        final status = paymentStatus.toLowerCase();
+        switch (status) {
+          case 'paid':
+          case 'success':
+          case 'completed':
+          case '3': // 已支付
+            return PaymentStatusResult.success(message);
+          case 'cancelled':
+          case 'canceled':
+          case 'cancel':
+          case '2': // 已取消
+            return PaymentStatusResult.canceled(message);
+          case 'pending':
+          case 'processing':
+          case 'waiting':
+          case '0': // 等待支付
+          default:
+            return PaymentStatusResult.pending(message);
+        }
+      } else {
+        // 未知数据类型，默认为等待状态
+        return PaymentStatusResult.pending(message);
+      }
+    } catch (e) {
+      if (e is PaymentError) rethrow;
+      throw PaymentError.fromException(e);
+    }
+  }
+
   /// 取消支付
   /// 
   /// [tradeNo] 订单交易号
