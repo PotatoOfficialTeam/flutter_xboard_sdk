@@ -5,6 +5,15 @@ class SubscriptionInfo {
   final PlanDetails? plan;
   final String? token;
   final DateTime? expiredAt;
+  final int? u; // 上传流量
+  final int? d; // 下载流量
+  final int? transferEnable; // 总流量限制
+  final int? planId; // 套餐ID
+  final String? email; // 邮箱
+  final String? uuid; // 用户UUID
+  final int? deviceLimit; // 设备限制
+  final int? speedLimit; // 速度限制
+  final DateTime? nextResetAt; // 下次重置时间
 
   SubscriptionInfo({
     this.subscribeUrl,
@@ -12,6 +21,15 @@ class SubscriptionInfo {
     this.plan,
     this.token,
     this.expiredAt,
+    this.u,
+    this.d,
+    this.transferEnable,
+    this.planId,
+    this.email,
+    this.uuid,
+    this.deviceLimit,
+    this.speedLimit,
+    this.nextResetAt,
   });
 
   factory SubscriptionInfo.fromJson(Map<String, dynamic> json) {
@@ -22,6 +40,17 @@ class SubscriptionInfo {
       token: json['token'],
       expiredAt: json['expired_at'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(json['expired_at'] * 1000)
+          : null,
+      u: json['u'],
+      d: json['d'],
+      transferEnable: json['transfer_enable'],
+      planId: json['plan_id'],
+      email: json['email'],
+      uuid: json['uuid'],
+      deviceLimit: json['device_limit'],
+      speedLimit: json['speed_limit'],
+      nextResetAt: json['next_reset_at'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(json['next_reset_at'] * 1000)
           : null,
     );
   }
@@ -34,6 +63,17 @@ class SubscriptionInfo {
       'token': token,
       'expired_at': expiredAt?.millisecondsSinceEpoch != null 
           ? expiredAt!.millisecondsSinceEpoch ~/ 1000 
+          : null,
+      'u': u,
+      'd': d,
+      'transfer_enable': transferEnable,
+      'plan_id': planId,
+      'email': email,
+      'uuid': uuid,
+      'device_limit': deviceLimit,
+      'speed_limit': speedLimit,
+      'next_reset_at': nextResetAt?.millisecondsSinceEpoch != null
+          ? nextResetAt!.millisecondsSinceEpoch ~/ 1000
           : null,
     };
   }
