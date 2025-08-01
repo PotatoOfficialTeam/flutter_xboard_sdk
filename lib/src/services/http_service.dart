@@ -11,7 +11,12 @@ class HttpService {
 
   /// 设置认证token
   void setAuthToken(String token) {
-    _authToken = token;
+    // 确保即使传入的token没有Bearer前缀，也能正确处理
+    if (token.toLowerCase().startsWith('bearer ')) {
+      _authToken = token;
+    } else {
+      _authToken = 'Bearer $token';
+    }
   }
 
   /// 清除认证token
@@ -92,8 +97,10 @@ class HttpService {
       return _handleResponse(response.statusCode, responseBody);
     } on SocketException catch (e) {
       throw NetworkException('网络连接失败: ${e.message}');
+    } on XBoardException {
+      rethrow; // 重新抛出已知的 XBoardException 子类
     } catch (e) {
-      throw NetworkException('请求失败: $e');
+      throw ApiException('请求失败: $e'); // 对于其他未知异常，抛出 ApiException
     }
   }
 

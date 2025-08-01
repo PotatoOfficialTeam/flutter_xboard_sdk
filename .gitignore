@@ -47,3 +47,7 @@ app.*.map.json
 .env
 .env.local
 .env.production
+
+# Generated Freezed and JsonSerializable files
+*.g.dart
+*.freezed.dart

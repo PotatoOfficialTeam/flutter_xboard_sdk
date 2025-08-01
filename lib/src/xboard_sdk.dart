@@ -1,5 +1,4 @@
 import 'services/http_service.dart';
-import 'services/auth_service.dart';
 import 'services/subscription_service.dart';
 import 'services/balance_service.dart';
 import 'services/coupon_service.dart';
@@ -12,16 +11,23 @@ import 'utils/subscription_cache.dart';
 import 'exceptions/xboard_exceptions.dart';
 import 'services/user_info_service.dart';
 
+// New imports for modularized auth features
+import 'features/auth/login/login_api.dart';
+import 'features/auth/register/register_api.dart';
+import 'features/auth/send_email_code/send_email_code_api.dart';
+import 'features/auth/reset_password/reset_password_api.dart';
+import 'features/auth/refresh_token/refresh_token_api.dart';
+import 'features/config/config_api.dart'; // New import for ConfigApi
+
 /// XBoard SDK主类
 /// 提供对XBoard API的统一访问接口
 class XBoardSDK {
   static XBoardSDK? _instance;
   static XBoardSDK get instance => _instance ??= XBoardSDK._internal();
-  
+
   XBoardSDK._internal();
 
   late HttpService _httpService;
-  late AuthService _authService;
   late SubscriptionService _subscriptionService;
   late BalanceService _balanceService;
   late CouponService _couponService;
@@ -31,13 +37,21 @@ class XBoardSDK {
   late PlanService _planService;
   late TicketService _ticketService;
   late UserInfoService _userInfoService;
-  
+
+  // New API instances for modularized auth features
+  late LoginApi _loginApi;
+  late RegisterApi _registerApi;
+  late SendEmailCodeApi _sendEmailCodeApi;
+  late ResetPasswordApi _resetPasswordApi;
+  late RefreshTokenApi _refreshTokenApi;
+  late ConfigApi _configApi; // New instance for ConfigApi
+
   String? _authToken;
   bool _isInitialized = false;
 
   /// 初始化SDK
   /// [baseUrl] XBoard服务器的基础URL
-  /// 
+  ///
   /// 示例:
   /// ```dart
   /// await XBoardSDK.instance.initialize('https://your-xboard-domain.com');
@@ -46,14 +60,13 @@ class XBoardSDK {
     if (baseUrl.isEmpty) {
       throw ConfigException('Base URL cannot be empty');
     }
-    
+
     // 移除URL末尾的斜杠
-    final cleanUrl = baseUrl.endsWith('/') 
+    final cleanUrl = baseUrl.endsWith('/')
         ? baseUrl.substring(0, baseUrl.length - 1)
         : baseUrl;
-    
+
     _httpService = HttpService(cleanUrl);
-    _authService = AuthService(_httpService);
     _subscriptionService = SubscriptionService(_httpService);
     _balanceService = BalanceService(_httpService);
     _couponService = CouponService(_httpService);
@@ -63,10 +76,18 @@ class XBoardSDK {
     _planService = PlanService(_httpService);
     _ticketService = TicketService(_httpService);
     _userInfoService = UserInfoService(_httpService);
-    
+
+    // Initialize new API instances
+    _loginApi = LoginApi(_httpService);
+    _registerApi = RegisterApi(_httpService);
+    _sendEmailCodeApi = SendEmailCodeApi(_httpService);
+    _resetPasswordApi = ResetPasswordApi(_httpService);
+    _refreshTokenApi = RefreshTokenApi(_httpService);
+    _configApi = ConfigApi(_httpService); // Initialize ConfigApi
+
     // 初始化订阅缓存
     await SubscriptionCache.init();
-    
+
     _isInitialized = true;
   }
 
@@ -95,9 +116,14 @@ class XBoardSDK {
   /// 获取HTTP服务实例（供高级用户使用）
   HttpService get httpService => _httpService;
 
-  /// 认证服务
-  AuthService get auth => _authService;
-  
+  // New getters for modularized auth features
+  LoginApi get login => _loginApi;
+  RegisterApi get register => _registerApi;
+  SendEmailCodeApi get sendEmailCode => _sendEmailCodeApi;
+  ResetPasswordApi get resetPassword => _resetPasswordApi;
+  RefreshTokenApi get refreshToken => _refreshTokenApi;
+  ConfigApi get config => _configApi; // New getter for ConfigApi
+
   /// 订阅服务
   SubscriptionService get subscription => _subscriptionService;
 

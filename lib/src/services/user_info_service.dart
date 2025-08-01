@@ -1,3 +1,5 @@
+import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
+import 'package:flutter_xboard_sdk/src/models/user_info_models.dart';
 import 'http_service.dart';
 import '../exceptions/xboard_exceptions.dart';
 
@@ -8,15 +10,10 @@ class UserInfoService {
   UserInfoService(this._httpService);
 
   /// 获取用户信息
-  Future<Map<String, dynamic>> getUserInfo() async {
+  Future<ApiResponse<UserInfo>> getUserInfo() async {
     try {
       final result = await _httpService.getRequest('/api/v1/user/info');
-      
-      if (result['success'] != true) {
-        throw ApiException(result['message']?.toString() ?? '获取用户信息失败');
-      }
-      
-      return result['data'] as Map<String, dynamic>;
+      return ApiResponse.fromJson(result, (data) => UserInfo.fromJson(data));
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('获取用户信息失败: $e');
