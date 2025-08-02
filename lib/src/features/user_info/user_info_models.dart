@@ -20,6 +20,16 @@ bool _intToBool(dynamic value) {
 }
 int _boolToInt(bool value) => value ? 1 : 0;
 
+// Helper functions for telegram_id conversion
+String? _telegramIdFromJson(dynamic value) {
+  if (value == null) return null;
+  if (value is String) return value;
+  if (value is int) return value.toString();
+  return value.toString();
+}
+
+dynamic _telegramIdToJson(String? value) => value;
+
 @freezed
 class UserInfo with _$UserInfo {
   const factory UserInfo({
@@ -41,7 +51,7 @@ class UserInfo with _$UserInfo {
     @JsonKey(name: 'plan_id') required int planId,
     double? discount,
     @JsonKey(name: 'commission_rate') double? commissionRate,
-    @JsonKey(name: 'telegram_id') String? telegramId,
+    @JsonKey(name: 'telegram_id', fromJson: _telegramIdFromJson, toJson: _telegramIdToJson) String? telegramId,
     required String uuid,
     @JsonKey(name: 'avatar_url') required String avatarUrl,
   }) = _UserInfo;

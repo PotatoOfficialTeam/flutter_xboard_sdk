@@ -252,10 +252,17 @@ class XBoardSDK {
       final response = await _loginApi.login(email, password);
       if (response.success == true && response.data != null) {
         final data = response.data!;
-        if (data.token != null) {
+        // 优先使用authData，因为它包含完整的Bearer token格式
+        // 如果authData不存在，则使用token字段
+        final tokenToUse = data.authData ?? data.token;
+        if (tokenToUse != null) {
+          // 如果是authData，直接使用完整的Bearer token
+          // 如果是token字段，需要添加Bearer前缀
+          final fullToken = data.authData ?? 'Bearer ${data.token}';
+          
           await saveTokens(
-            accessToken: data.token!,
-            refreshToken: data.token!, // 临时使用相同的token
+            accessToken: fullToken!,
+            refreshToken: fullToken, // 临时使用相同的token
             expiry: DateTime.now().add(const Duration(hours: 24)),
           );
           return true;

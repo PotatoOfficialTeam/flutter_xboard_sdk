@@ -34,12 +34,6 @@ class HttpService {
       logPrint: (obj) => print('[HttpService] $obj'),
     ));
 
-    // 添加认证拦截器
-    if (_tokenManager != null) {
-      _authInterceptor = AuthInterceptor(tokenManager: _tokenManager!);
-      _dio.interceptors.add(_authInterceptor!);
-    }
-
     // 添加响应格式化拦截器
     _dio.interceptors.add(InterceptorsWrapper(
       onResponse: (response, handler) {
@@ -51,6 +45,12 @@ class HttpService {
         handler.next(normalizedError);
       },
     ));
+
+    // 添加认证拦截器（最后添加，确保它能处理认证相关错误）
+    if (_tokenManager != null) {
+      _authInterceptor = AuthInterceptor(tokenManager: _tokenManager!);
+      _dio.interceptors.add(_authInterceptor!);
+    }
   }
 
   /// 设置TokenManager

@@ -35,10 +35,10 @@ class AuthInterceptor extends Interceptor {
         return;
       }
 
-      // 获取有效的访问token
+      // 获取有效的访问token（应该已经包含Bearer前缀）
       final token = await _tokenManager.getValidAccessToken();
       if (token != null) {
-        options.headers['Authorization'] = 'Bearer $token';
+        options.headers['Authorization'] = token;
         print('[AuthInterceptor] Added token to request: ${options.path}');
       } else {
         print('[AuthInterceptor] No valid token available for: ${options.path}');
@@ -63,8 +63,8 @@ class AuthInterceptor extends Interceptor {
     
     print('[AuthInterceptor] Error: ${err.response?.statusCode} ${requestOptions.path}');
 
-    // 只处理401未授权错误
-    if (err.response?.statusCode == 401 && !_isPublicEndpoint(requestOptions.path)) {
+    // 处理401未授权错误和403权限错误（通常也表示token过期）
+    if ((err.response?.statusCode == 401 || err.response?.statusCode == 403) && !_isPublicEndpoint(requestOptions.path)) {
       try {
         // 检查是否已经重试过
         final retryCount = requestOptions.extra['retry_count'] as int? ?? 0;
@@ -74,15 +74,15 @@ class AuthInterceptor extends Interceptor {
           return;
         }
 
-        print('[AuthInterceptor] Attempting to refresh token for 401 error');
+        print('[AuthInterceptor] Attempting to refresh token for ${err.response?.statusCode} error');
 
         // 尝试刷新token
         final newToken = await _tokenManager.refreshToken();
         if (newToken != null) {
           print('[AuthInterceptor] Token refreshed successfully, retrying request');
 
-          // 更新请求的Authorization头
-          requestOptions.headers['Authorization'] = 'Bearer $newToken';
+          // 直接使用刷新后的token（应该已经包含Bearer前缀）
+          requestOptions.headers['Authorization'] = newToken;
           requestOptions.extra['retry_count'] = retryCount + 1;
 
           // 重新发起请求
