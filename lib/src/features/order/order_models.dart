@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
+import 'package:flutter_xboard_sdk/src/features/plan/plan_models.dart';
 
 part 'order_models.freezed.dart';
 part 'order_models.g.dart';
@@ -49,7 +50,7 @@ class Order with _$Order {
     int? status,
     @JsonKey(name: 'created_at', fromJson: _fromUnixTimestamp, toJson: _toUnixTimestamp)
     DateTime? createdAt,
-    @JsonKey(name: 'plan') OrderPlan? orderPlan,
+    @JsonKey(name: 'plan') Plan? orderPlan,
   }) = _Order;
 
   factory Order.fromJson(Map<String, dynamic> json) => _$OrderFromJson(json);
@@ -115,13 +116,13 @@ String _idFromJson(dynamic value) {
 dynamic _idToJson(String value) => value; // No special conversion needed for toJson
 
 @freezed
-class PaymentResponse with _$PaymentResponse {
-  const factory PaymentResponse({
+class OrderPaymentInfoResponse with _$OrderPaymentInfoResponse {
+  const factory OrderPaymentInfoResponse({
     @JsonKey(name: 'payment_methods') required List<PaymentMethod> paymentMethods,
     @JsonKey(name: 'trade_no') required String tradeNo,
-  }) = _PaymentResponse;
+  }) = _OrderPaymentInfoResponse;
 
-  factory PaymentResponse.fromJson(Map<String, dynamic> json) => _$PaymentResponseFromJson(json);
+  factory OrderPaymentInfoResponse.fromJson(Map<String, dynamic> json) => _$OrderPaymentInfoResponseFromJson(json);
 }
 
 @freezed
@@ -134,46 +135,6 @@ class OrderResponse with _$OrderResponse {
   factory OrderResponse.fromJson(Map<String, dynamic> json) => _$OrderResponseFromJson(json);
 }
 
-@freezed
-class Plan with _$Plan {
-  const factory Plan({
-    required int id,
-    @JsonKey(name: 'group_id') required int groupId,
-    @JsonKey(name: 'transfer_enable') required double transferEnable,
-    required String name,
-    @JsonKey(name: 'speed_limit') int? speedLimit,
-    @JsonKey(fromJson: _intToBool, toJson: _boolToInt)
-    required bool show,
-    String? content,
-    @JsonKey(name: 'onetime_price', fromJson: _priceFromJson, toJson: _priceToJson)
-    double? onetimePrice,
-    @JsonKey(name: 'month_price', fromJson: _priceFromJson, toJson: _priceToJson)
-    double? monthPrice,
-    @JsonKey(name: 'quarter_price', fromJson: _priceFromJson, toJson: _priceToJson)
-    double? quarterPrice,
-    @JsonKey(name: 'half_year_price', fromJson: _priceFromJson, toJson: _priceToJson)
-    double? halfYearPrice,
-    @JsonKey(name: 'year_price', fromJson: _priceFromJson, toJson: _priceToJson)
-    double? yearPrice,
-    @JsonKey(name: 'two_year_price', fromJson: _priceFromJson, toJson: _priceToJson)
-    double? twoYearPrice,
-    @JsonKey(name: 'three_year_price', fromJson: _priceFromJson, toJson: _priceToJson)
-    double? threeYearPrice,
-    @JsonKey(name: 'created_at', fromJson: _fromUnixTimestamp, toJson: _toUnixTimestamp)
-    DateTime? createdAt,
-    @JsonKey(name: 'updated_at', fromJson: _fromUnixTimestamp, toJson: _toUnixTimestamp)
-    DateTime? updatedAt,
-  }) = _Plan;
 
-  factory Plan.fromJson(Map<String, dynamic> json) => _$PlanFromJson(json);
-}
 
-@freezed
-class PlanResponse with _$PlanResponse {
-  const factory PlanResponse({
-    required List<Plan> data, // Renamed from plans to data to match ApiResponse
-    int? total,
-  }) = _PlanResponse;
 
-  factory PlanResponse.fromJson(Map<String, dynamic> json) => _$PlanResponseFromJson(json);
-}

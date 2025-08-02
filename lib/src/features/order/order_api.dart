@@ -1,5 +1,6 @@
 import 'package:flutter_xboard_sdk/src/services/http_service.dart';
 import 'package:flutter_xboard_sdk/src/features/order/order_models.dart';
+import 'package:flutter_xboard_sdk/src/features/order/order_models.dart' show OrderRelatedPlan, OrderRelatedPlanResponse;
 import 'package:flutter_xboard_sdk/src/exceptions/xboard_exceptions.dart';
 import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
 
@@ -82,35 +83,7 @@ class OrderApi {
     }
   }
 
-  /// 获取套餐计划列表
-  /// 返回 [PlanResponse] 对象，包含计划列表
-  Future<PlanResponse> fetchPlans() async {
-    try {
-      final result = await _httpService.getRequest("/api/v1/user/plan/fetch");
-      return PlanResponse.fromJson(result);
-    } catch (e) {
-      if (e is XBoardException) rethrow;
-      throw ApiException('获取套餐计划失败: $e');
-    }
-  }
-
-  /// 获取套餐计划详情
-  /// [planId] 套餐计划ID
-  /// 返回指定套餐的详细信息
-  Future<Plan?> getPlanDetails(int planId) async {
-    try {
-      final result = await _httpService.getRequest(
-        "/api/v1/user/plan/fetch?id=$planId",
-      );
-      if (result['data'] != null) {
-        return Plan.fromJson(result['data'] as Map<String, dynamic>);
-      }
-      return null;
-    } catch (e) {
-      if (e is XBoardException) rethrow;
-      throw ApiException('获取套餐计划详情失败: $e');
-    }
-  }
+  
 
   /// 获取支付方式列表
   /// 返回 [PaymentMethod] 列表

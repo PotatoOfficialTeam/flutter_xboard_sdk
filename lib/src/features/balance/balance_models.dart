@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:flutter_xboard_sdk/src/models/user_info_models.dart'; // Import UserInfo
+import 'package:flutter_xboard_sdk/src/features/user_info/user_info_models.dart';
 import 'package:flutter_xboard_sdk/src/common/models/api_response.dart'; // Import ApiResponse
 
 part 'balance_models.freezed.dart';

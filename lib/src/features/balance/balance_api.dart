@@ -1,7 +1,7 @@
 import 'package:flutter_xboard_sdk/src/services/http_service.dart';
 import 'package:flutter_xboard_sdk/src/features/balance/balance_models.dart';
 import 'package:flutter_xboard_sdk/src/exceptions/xboard_exceptions.dart';
-import 'package:flutter_xboard_sdk/src/models/user_info_models.dart'; // For UserInfo
+import 'package:flutter_xboard_sdk/src/features/user_info/user_info_models.dart'; // For UserInfo
 
 import 'package:flutter_xboard_sdk/src/common/models/api_response.dart'; // Import ApiResponse
 

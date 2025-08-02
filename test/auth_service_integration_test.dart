@@ -40,9 +40,8 @@ void main() {
       print('Auth token set for subsequent requests.');
 
       // Step 3: Get user info to validate the token
-      final userInfoService = UserInfoService(sdk.httpService);
       print('Attempting to get user info...');
-      final userInfoResponse = await userInfoService.getUserInfo();
+      final userInfoResponse = await sdk.userInfo.getUserInfo();
 
       expect(userInfoResponse.success, isTrue, reason: 'Get user info should be successful');
       expect(userInfoResponse.data, isNotNull, reason: 'User info data should not be null');

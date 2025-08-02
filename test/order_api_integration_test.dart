@@ -27,10 +27,9 @@ void main() {
     });
 
     test('fetchPlans should return a list of plans', () async {
-      final response = await sdk.orderApi.fetchPlans();
+      final response = await sdk.plan.fetchPlans();
       expect(response, isNotNull);
       expect(response.data, isA<List<Plan>>());
-      expect(response.total, isA<int?>());
     });
 
     test('getPaymentMethods should return a list of payment methods', () async {

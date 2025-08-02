@@ -1,19 +1,18 @@
+import 'package:flutter_xboard_sdk/src/services/http_service.dart';
+import 'package:flutter_xboard_sdk/src/features/user_info/user_info_models.dart';
 import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
-import 'package:flutter_xboard_sdk/src/models/user_info_models.dart';
-import 'http_service.dart';
-import '../exceptions/xboard_exceptions.dart';
+import 'package:flutter_xboard_sdk/src/exceptions/xboard_exceptions.dart';
 
-/// 用户信息服务
-class UserInfoService {
+class UserInfoApi {
   final HttpService _httpService;
 
-  UserInfoService(this._httpService);
+  UserInfoApi(this._httpService);
 
   /// 获取用户信息
   Future<ApiResponse<UserInfo>> getUserInfo() async {
     try {
       final result = await _httpService.getRequest('/api/v1/user/info');
-      return ApiResponse.fromJson(result, (data) => UserInfo.fromJson(data));
+      return ApiResponse.fromJson(result, (json) => UserInfo.fromJson(json as Map<String, dynamic>));
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('获取用户信息失败: $e');
@@ -21,7 +20,7 @@ class UserInfoService {
   }
 
   /// 校验Token是否有效
-  Future<bool> validateToken(String token) async {
+  Future<ApiResponse<bool>> validateToken(String token) async {
     try {
       // 临时设置token用于验证
       final originalToken = _httpService.getAuthToken();
@@ -36,26 +35,18 @@ class UserInfoService {
         _httpService.clearAuthToken();
       }
       
-      if (result['success'] == true && result['data'] != null) {
-        final data = result['data'] as Map<String, dynamic>;
-        return data.containsKey('subscribe_url') && data['subscribe_url'] != null;
-      }
-      return false;
+      return ApiResponse.fromJson(result, (json) => json['subscribe_url'] != null);
     } catch (e) {
-      return false;
+      if (e is XBoardException) rethrow;
+      throw ApiException('校验Token失败: $e');
     }
   }
 
   /// 获取订阅链接
-  Future<String?> getSubscriptionLink() async {
+  Future<ApiResponse<String?>> getSubscriptionLink() async {
     try {
       final result = await _httpService.getRequest('/api/v1/user/getSubscribe');
-      
-      if (result['success'] != true) {
-        throw ApiException(result['message']?.toString() ?? '获取订阅链接失败');
-      }
-      
-      return result['data']?['subscribe_url'] as String?;
+      return ApiResponse.fromJson(result, (json) => json['subscribe_url'] as String?);
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('获取订阅链接失败: $e');
@@ -63,15 +54,10 @@ class UserInfoService {
   }
 
   /// 重置订阅链接
-  Future<String?> resetSubscriptionLink() async {
+  Future<ApiResponse<String?>> resetSubscriptionLink() async {
     try {
       final result = await _httpService.getRequest('/api/v1/user/resetSecurity');
-      
-      if (result['success'] != true) {
-        throw ApiException(result['message']?.toString() ?? '重置订阅链接失败');
-      }
-      
-      return result['data'] as String?;
+      return ApiResponse.fromJson(result, (json) => json as String?);
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('重置订阅链接失败: $e');
@@ -79,28 +65,28 @@ class UserInfoService {
   }
 
   /// 切换流量提醒
-  Future<bool> toggleTrafficReminder(int value) async {
+  Future<ApiResponse<void>> toggleTrafficReminder(bool value) async {
     try {
       final result = await _httpService.postRequest('/api/v1/user/update', {
-        'remind_traffic': value,
+        'remind_traffic': value ? 1 : 0,
       });
-      
-      return result['success'] == true || result['status'] == 'success';
+      return ApiResponse.fromJson(result, (json) => null);
     } catch (e) {
-      return false;
+      if (e is XBoardException) rethrow;
+      throw ApiException('切换流量提醒失败: $e');
     }
   }
 
   /// 切换到期提醒
-  Future<bool> toggleExpireReminder(int value) async {
+  Future<ApiResponse<void>> toggleExpireReminder(bool value) async {
     try {
       final result = await _httpService.postRequest('/api/v1/user/update', {
-        'remind_expire': value,
+        'remind_expire': value ? 1 : 0,
       });
-      
-      return result['success'] == true || result['status'] == 'success';
+      return ApiResponse.fromJson(result, (json) => null);
     } catch (e) {
-      return false;
+      if (e is XBoardException) rethrow;
+      throw ApiException('切换到期提醒失败: $e');
     }
   }
-} 
+}

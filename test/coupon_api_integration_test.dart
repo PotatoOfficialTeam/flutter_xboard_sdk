@@ -23,7 +23,7 @@ void main() {
       // Replace with a valid coupon code and plan ID for your test environment
       // This test might fail if the coupon code is invalid or expired.
       final couponCode = 'xiaoqi'; // Replace with a valid coupon code
-      final planId = 1; // Replace with a valid plan ID
+      final planId = 5; // Replace with a valid plan ID
 
       try {
         final response = await sdk.couponApi.checkCoupon(couponCode, planId);

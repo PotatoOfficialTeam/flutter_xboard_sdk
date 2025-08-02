@@ -1,16 +1,18 @@
 import 'services/http_service.dart';
 
-import 'services/payment_service.dart';
-import 'services/plan_service.dart';
-import 'services/ticket_service.dart';
+import 'features/payment/payment_api.dart';
+import 'features/plan/plan_api.dart';
+import 'features/ticket/ticket_api.dart';
 import 'exceptions/xboard_exceptions.dart';
-import 'services/user_info_service.dart';
+import 'features/user_info/user_info_api.dart';
 import 'features/balance/balance_api.dart';
 import 'features/coupon/coupon_api.dart';
 import 'features/notice/notice_api.dart';
 import 'features/order/order_api.dart'; // Added this import
 
 // New imports for modularized auth features
+import 'features/app/app_api.dart';
+import 'features/invite/invite_api.dart';
 import 'features/auth/login/login_api.dart';
 import 'features/auth/register/register_api.dart';
 import 'features/auth/send_email_code/send_email_code_api.dart';
@@ -29,10 +31,10 @@ class XBoardSDK {
 
   late HttpService _httpService;
 
-  late PaymentService _paymentService;
-  late PlanService _planService;
-  late TicketService _ticketService;
-  late UserInfoService _userInfoService;
+  late PaymentApi _paymentApi;
+  late PlanApi _planApi;
+  late TicketApi _ticketApi;
+  late UserInfoApi _userInfoApi;
 
   // New API instances for modularized auth features
   late LoginApi _loginApi;
@@ -46,6 +48,8 @@ class XBoardSDK {
   late CouponApi _couponApi;
   late NoticeApi _noticeApi;
   late OrderApi _orderApi; // Added this line
+  late InviteApi _inviteApi;
+  late AppApi _appApi;
 
   String? _authToken;
   bool _isInitialized = false;
@@ -69,10 +73,10 @@ class XBoardSDK {
 
     _httpService = HttpService(cleanUrl);
 
-    _paymentService = PaymentService(_httpService);
-    _planService = PlanService(_httpService);
-    _ticketService = TicketService(_httpService);
-    _userInfoService = UserInfoService(_httpService);
+    _paymentApi = PaymentApi(_httpService);
+    _planApi = PlanApi(_httpService);
+    _ticketApi = TicketApi(_httpService);
+    _userInfoApi = UserInfoApi(_httpService);
 
     // Initialize new API instances
     _loginApi = LoginApi(_httpService);
@@ -86,6 +90,8 @@ class XBoardSDK {
     _couponApi = CouponApi(_httpService);
     _noticeApi = NoticeApi(_httpService);
     _orderApi = OrderApi(_httpService); // Added this line
+    _inviteApi = InviteApi(_httpService);
+    _appApi = AppApi(_httpService);
 
     _isInitialized = true;
   }
@@ -125,18 +131,20 @@ class XBoardSDK {
   CouponApi get couponApi => _couponApi;
   NoticeApi get noticeApi => _noticeApi;
   OrderApi get orderApi => _orderApi; // Added this line
+  InviteApi get inviteApi => _inviteApi;
+  AppApi get appApi => _appApi;
 
   /// 支付服务
-  PaymentService get payment => _paymentService;
+  PaymentApi get payment => _paymentApi;
 
   /// 套餐服务
-  PlanService get plan => _planService;
+  PlanApi get plan => _planApi;
 
   /// 工单服务
-  TicketService get ticket => _ticketService;
+  TicketApi get ticket => _ticketApi;
 
   /// 用户信息服务
-  UserInfoService get userInfo => _userInfoService;
+  UserInfoApi get userInfo => _userInfoApi;
 
   /// 获取基础URL
   String? get baseUrl => _httpService.baseUrl;
