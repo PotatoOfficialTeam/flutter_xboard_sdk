@@ -1,5 +1,6 @@
 import 'package:flutter_xboard_sdk/src/services/http_service.dart';
 import 'package:flutter_xboard_sdk/src/features/notice/notice_models.dart';
+import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
 import 'package:flutter_xboard_sdk/src/exceptions/xboard_exceptions.dart';
 
 class NoticeApi {
@@ -23,7 +24,12 @@ class NoticeApi {
       }
 
       // Directly return fromJson, assuming the structure matches NoticeResponse
-      return NoticeResponse.fromJson(result);
+      final apiResponse = ApiResponse.fromJson(result, (json) => json); // Pass a dummy function for T
+      if (apiResponse.success && apiResponse.data != null) {
+        return NoticeResponse.fromJson(apiResponse.data as Map<String, dynamic>);
+      } else {
+        throw ApiException(apiResponse.message ?? 'Failed to fetch notices');
+      }
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('获取通知失败: $e');
