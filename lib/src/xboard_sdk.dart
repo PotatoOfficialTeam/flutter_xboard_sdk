@@ -1,15 +1,14 @@
 import 'services/http_service.dart';
-import 'services/subscription_service.dart';
-import 'services/balance_service.dart';
-import 'services/coupon_service.dart';
-import 'services/notice_service.dart';
-import 'services/order_service.dart';
+
 import 'services/payment_service.dart';
 import 'services/plan_service.dart';
 import 'services/ticket_service.dart';
-import 'utils/subscription_cache.dart';
 import 'exceptions/xboard_exceptions.dart';
 import 'services/user_info_service.dart';
+import 'features/balance/balance_api.dart';
+import 'features/coupon/coupon_api.dart';
+import 'features/notice/notice_api.dart';
+import 'features/order/order_api.dart'; // Added this import
 
 // New imports for modularized auth features
 import 'features/auth/login/login_api.dart';
@@ -17,7 +16,8 @@ import 'features/auth/register/register_api.dart';
 import 'features/auth/send_email_code/send_email_code_api.dart';
 import 'features/auth/reset_password/reset_password_api.dart';
 import 'features/auth/refresh_token/refresh_token_api.dart';
-import 'features/config/config_api.dart'; // New import for ConfigApi
+import 'features/config/config_api.dart';
+import 'features/subscription/subscription_api.dart';
 
 /// XBoard SDK主类
 /// 提供对XBoard API的统一访问接口
@@ -28,11 +28,7 @@ class XBoardSDK {
   XBoardSDK._internal();
 
   late HttpService _httpService;
-  late SubscriptionService _subscriptionService;
-  late BalanceService _balanceService;
-  late CouponService _couponService;
-  late NoticeService _noticeService;
-  late OrderService _orderService;
+
   late PaymentService _paymentService;
   late PlanService _planService;
   late TicketService _ticketService;
@@ -44,7 +40,12 @@ class XBoardSDK {
   late SendEmailCodeApi _sendEmailCodeApi;
   late ResetPasswordApi _resetPasswordApi;
   late RefreshTokenApi _refreshTokenApi;
-  late ConfigApi _configApi; // New instance for ConfigApi
+  late ConfigApi _configApi;
+  late SubscriptionApi _subscriptionApi;
+  late BalanceApi _balanceApi;
+  late CouponApi _couponApi;
+  late NoticeApi _noticeApi;
+  late OrderApi _orderApi; // Added this line
 
   String? _authToken;
   bool _isInitialized = false;
@@ -67,11 +68,7 @@ class XBoardSDK {
         : baseUrl;
 
     _httpService = HttpService(cleanUrl);
-    _subscriptionService = SubscriptionService(_httpService);
-    _balanceService = BalanceService(_httpService);
-    _couponService = CouponService(_httpService);
-    _noticeService = NoticeService(_httpService);
-    _orderService = OrderService(_httpService);
+
     _paymentService = PaymentService(_httpService);
     _planService = PlanService(_httpService);
     _ticketService = TicketService(_httpService);
@@ -83,10 +80,12 @@ class XBoardSDK {
     _sendEmailCodeApi = SendEmailCodeApi(_httpService);
     _resetPasswordApi = ResetPasswordApi(_httpService);
     _refreshTokenApi = RefreshTokenApi(_httpService);
-    _configApi = ConfigApi(_httpService); // Initialize ConfigApi
-
-    // 初始化订阅缓存
-    await SubscriptionCache.init();
+    _configApi = ConfigApi(_httpService);
+    _subscriptionApi = SubscriptionApi(_httpService);
+    _balanceApi = BalanceApi(_httpService);
+    _couponApi = CouponApi(_httpService);
+    _noticeApi = NoticeApi(_httpService);
+    _orderApi = OrderApi(_httpService); // Added this line
 
     _isInitialized = true;
   }
@@ -106,8 +105,6 @@ class XBoardSDK {
   void clearAuthToken() {
     _authToken = null;
     _httpService.clearAuthToken();
-    // 清除订阅缓存
-    SubscriptionCache.clearAll();
   }
 
   /// 检查SDK是否已初始化
@@ -122,22 +119,12 @@ class XBoardSDK {
   SendEmailCodeApi get sendEmailCode => _sendEmailCodeApi;
   ResetPasswordApi get resetPassword => _resetPasswordApi;
   RefreshTokenApi get refreshToken => _refreshTokenApi;
-  ConfigApi get config => _configApi; // New getter for ConfigApi
-
-  /// 订阅服务
-  SubscriptionService get subscription => _subscriptionService;
-
-  /// 余额服务
-  BalanceService get balance => _balanceService;
-
-  /// 优惠券服务
-  CouponService get coupon => _couponService;
-
-  /// 通知服务
-  NoticeService get notice => _noticeService;
-
-  /// 订单服务
-  OrderService get order => _orderService;
+  ConfigApi get config => _configApi;
+  SubscriptionApi get subscription => _subscriptionApi;
+  BalanceApi get balanceApi => _balanceApi;
+  CouponApi get couponApi => _couponApi;
+  NoticeApi get noticeApi => _noticeApi;
+  OrderApi get orderApi => _orderApi; // Added this line
 
   /// 支付服务
   PaymentService get payment => _paymentService;
@@ -153,4 +140,4 @@ class XBoardSDK {
 
   /// 获取基础URL
   String? get baseUrl => _httpService.baseUrl;
-} 
+}

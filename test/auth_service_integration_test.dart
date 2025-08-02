@@ -1,33 +1,32 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:flutter_xboard_sdk/flutter_xboard_sdk.dart';
 
 void main() {
   group('AuthService Integration Tests', () {
-    const baseUrl = 'https://apiv20801.wujie001.info';
-    const email = 'alonmadeit@gmail.com';
-    const password = '12345678';
+    const String email = 'h89600912@gmail.com';
+    const String password = '12345678';
+    const String baseUrl = 'https://apiwj0801.wujie001.info';
 
-    late HttpService httpService;
-    late LoginApi loginApi;
+    late XBoardSDK sdk;
 
-    setUp(() {
-      httpService = HttpService(baseUrl);
-      loginApi = LoginApi(httpService);
+    setUp(() async {
+      sdk = XBoardSDK.instance;
+      await sdk.initialize(baseUrl);
     });
 
-    test('Login with invalid credentials should throw AuthException', () {
-      // 使用一个错误的密码，并期望它抛出AuthException
+    test('Login with invalid credentials should throw ApiException', () {
+      // 使用一个错误的密码，并期望它抛出ApiException
       expect(
-        () => loginApi.login(email, 'wrongpassword'),
+        () => sdk.login.login(email, 'wrongpassword'),
         throwsA(isA<ApiException>()),
       );
-      print('Test with invalid credentials threw AuthException as expected.');
+      print('Test with invalid credentials threw ApiException as expected.');
     });
 
     test('Full authentication flow: Login and get user info', () async {
       // Step 1: Login with valid credentials
       print('Attempting to login with email: $email');
-      final loginResponse = await loginApi.login(email, password);
+      final loginResponse = await sdk.login.login(email, password);
 
       expect(loginResponse.success, isTrue, reason: 'Login should be successful');
       expect(loginResponse.data?.authData, isNotNull, reason: 'authData should not be null');
@@ -37,11 +36,11 @@ void main() {
       print('Login successful, received authData: $bearerToken');
 
       // Step 2: Set the token in HttpService for subsequent authenticated requests
-      httpService.setAuthToken(bearerToken);
+      sdk.setAuthToken(bearerToken);
       print('Auth token set for subsequent requests.');
 
       // Step 3: Get user info to validate the token
-      final userInfoService = UserInfoService(httpService);
+      final userInfoService = UserInfoService(sdk.httpService);
       print('Attempting to get user info...');
       final userInfoResponse = await userInfoService.getUserInfo();
 

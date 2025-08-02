@@ -1,0 +1,62 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
+
+part 'notice_models.freezed.dart';
+part 'notice_models.g.dart';
+
+// Helper functions for DateTime to Unix timestamp conversion
+int? _toUnixTimestamp(int? date) => date; // Already Unix timestamp
+int _fromUnixTimestamp(int? timestamp) => timestamp ?? 0; // Return 0 if timestamp is null
+
+// Helper function for 'show' field (bool or int)
+bool _showFromJson(dynamic value) {
+  if (value is bool) {
+    return value;
+  } else if (value is int) {
+    return value == 1;
+  }
+  return false; // Default to false if unexpected type
+}
+
+dynamic _showToJson(bool value) => value ? 1 : 0;
+
+@freezed
+class Notice with _$Notice {
+  const factory Notice({
+    required int id,
+    required String title,
+    required String content,
+    @JsonKey(fromJson: _showFromJson, toJson: _showToJson)
+    required bool show, // Convert to bool
+    @JsonKey(name: 'img_url') String? imgUrl,
+    List<String>? tags,
+    @JsonKey(name: 'created_at', fromJson: _fromUnixTimestamp, toJson: _toUnixTimestamp)
+    required int createdAt,
+    @JsonKey(name: 'updated_at', fromJson: _fromUnixTimestamp, toJson: _toUnixTimestamp)
+    required int updatedAt,
+  }) = _Notice;
+
+  factory Notice.fromJson(Map<String, dynamic> json) => _$NoticeFromJson(json);
+}
+
+@freezed
+class NoticeResponse with _$NoticeResponse {
+  const factory NoticeResponse({
+    required List<Notice> data, // Renamed from notices to data to match ApiResponse
+    required int total,
+  }) = _NoticeResponse;
+
+  factory NoticeResponse.fromJson(Map<String, dynamic> json) {
+    // Extract 'data' and 'total' from the nested map
+    final Map<String, dynamic> innerData = json['data'] as Map<String, dynamic>;
+    final List<Notice> notices = (innerData['data'] as List<dynamic>)
+        .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final int totalCount = innerData['total'] as int;
+
+    return NoticeResponse(
+      data: notices,
+      total: totalCount,
+    );
+  }
+}
