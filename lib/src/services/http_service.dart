@@ -1,161 +1,261 @@
-import 'dart:convert';
-import 'dart:io';
+import 'package:dio/dio.dart';
 import '../exceptions/xboard_exceptions.dart';
+import '../core/token/token_manager.dart';
+import '../core/token/auth_interceptor.dart';
 
 class HttpService {
   final String baseUrl;
-  String? _authToken;
-  final HttpClient _httpClient = HttpClient();
+  late final Dio _dio;
+  TokenManager? _tokenManager;
+  AuthInterceptor? _authInterceptor;
 
-  HttpService(this.baseUrl);
+  HttpService(this.baseUrl, {TokenManager? tokenManager}) {
+    _tokenManager = tokenManager;
+    _initializeDio();
+  }
 
-  /// 设置认证token
+  /// 初始化Dio配置
+  void _initializeDio() {
+    _dio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ));
+
+    // 添加拦截器
+    _dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      logPrint: (obj) => print('[HttpService] $obj'),
+    ));
+
+    // 添加认证拦截器
+    if (_tokenManager != null) {
+      _authInterceptor = AuthInterceptor(tokenManager: _tokenManager!);
+      _dio.interceptors.add(_authInterceptor!);
+    }
+
+    // 添加响应格式化拦截器
+    _dio.interceptors.add(InterceptorsWrapper(
+      onResponse: (response, handler) {
+        response.data = _normalizeResponse(response.data);
+        handler.next(response);
+      },
+      onError: (error, handler) {
+        final normalizedError = _handleDioError(error);
+        handler.next(normalizedError);
+      },
+    ));
+  }
+
+  /// 设置TokenManager
+  void setTokenManager(TokenManager tokenManager) {
+    _tokenManager = tokenManager;
+    
+    // 移除旧的认证拦截器
+    if (_authInterceptor != null) {
+      _dio.interceptors.remove(_authInterceptor!);
+    }
+    
+    // 添加新的认证拦截器
+    _authInterceptor = AuthInterceptor(tokenManager: tokenManager);
+    _dio.interceptors.add(_authInterceptor!);
+  }
+
+  /// 设置认证token（向后兼容）
+  @Deprecated('Use TokenManager instead')
   void setAuthToken(String token) {
-    // 确保即使传入的token没有Bearer前缀，也能正确处理
-    if (token.toLowerCase().startsWith('bearer ')) {
-      _authToken = token;
+    if (_tokenManager != null) {
+      // 如果有TokenManager，通过它来设置token
+      _tokenManager!.saveTokens(
+        accessToken: token,
+        refreshToken: '', // 临时值
+        expiry: DateTime.now().add(const Duration(hours: 24)),
+      );
     } else {
-      _authToken = 'Bearer $token';
+      // 兼容模式：直接设置header
+      _dio.options.headers['Authorization'] = token.startsWith('Bearer ') ? token : 'Bearer $token';
     }
   }
 
-  /// 清除认证token
+  /// 清除认证token（向后兼容）
+  @Deprecated('Use TokenManager instead')
   void clearAuthToken() {
-    _authToken = null;
+    if (_tokenManager != null) {
+      _tokenManager!.clearTokens();
+    } else {
+      _dio.options.headers.remove('Authorization');
+    }
   }
 
-  /// 获取当前认证token
+  /// 获取当前认证token（向后兼容）
+  @Deprecated('Use TokenManager instead')
   String? getAuthToken() {
-    return _authToken;
+    if (_tokenManager != null) {
+      // 这里返回null，因为TokenManager是异步的
+      return null;
+    } else {
+      return _dio.options.headers['Authorization'];
+    }
   }
 
   /// 发送GET请求
   Future<Map<String, dynamic>> getRequest(String path, {Map<String, String>? headers}) async {
-    return _sendRequest('GET', path, headers: headers);
+    try {
+      final response = await _dio.get(
+        path,
+        options: Options(headers: headers),
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw _convertDioError(e);
+    }
   }
 
   /// 发送POST请求
   Future<Map<String, dynamic>> postRequest(String path, Map<String, dynamic> data, {Map<String, String>? headers}) async {
-    return _sendRequest('POST', path, data: data, headers: headers);
+    try {
+      final response = await _dio.post(
+        path,
+        data: data,
+        options: Options(headers: headers),
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw _convertDioError(e);
+    }
   }
 
   /// 发送PUT请求
   Future<Map<String, dynamic>> putRequest(String path, Map<String, dynamic> data, {Map<String, String>? headers}) async {
-    return _sendRequest('PUT', path, data: data, headers: headers);
+    try {
+      final response = await _dio.put(
+        path,
+        data: data,
+        options: Options(headers: headers),
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw _convertDioError(e);
+    }
   }
 
   /// 发送DELETE请求
   Future<Map<String, dynamic>> deleteRequest(String path, {Map<String, String>? headers}) async {
-    return _sendRequest('DELETE', path, headers: headers);
-  }
-
-  /// 通用HTTP请求方法
-  Future<Map<String, dynamic>> _sendRequest(
-    String method,
-    String path, {
-    Map<String, dynamic>? data,
-    Map<String, String>? headers,
-  }) async {
     try {
-      final uri = Uri.parse('$baseUrl$path');
-      print('[HttpService] $method $uri');
-      if (data != null) {
-        print('[HttpService] 请求数据: $data');
-      }
-      
-      final request = await _httpClient.openUrl(method, uri);
-
-      // 设置请求头
-      request.headers.set('Content-Type', 'application/json');
-      request.headers.set('Accept', 'application/json');
-
-      // 添加自定义头
-      if (headers != null) {
-        headers.forEach((key, value) {
-          request.headers.set(key, value);
-        });
-      }
-
-      // 添加认证头
-      if (_authToken != null) {
-        request.headers.set('Authorization', _authToken!);
-      }
-
-      // 写入请求体
-      if (data != null) {
-        final jsonData = jsonEncode(data);
-        request.add(utf8.encode(jsonData));
-      }
-
-      // 发送请求并获取响应
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
-      
-      print('[HttpService] 响应状态: ${response.statusCode}');
-      print('[HttpService] 响应内容: $responseBody');
-
-      return _handleResponse(response.statusCode, responseBody);
-    } on SocketException catch (e) {
-      throw NetworkException('网络连接失败: ${e.message}');
-    } on XBoardException {
-      rethrow; // 重新抛出已知的 XBoardException 子类
+      final response = await _dio.delete(
+        path,
+        options: Options(headers: headers),
+      );
+      return response.data as Map<String, dynamic>;
     } catch (e) {
-      throw ApiException('请求失败: $e'); // 对于其他未知异常，抛出 ApiException
+      throw _convertDioError(e);
     }
   }
 
-  /// 处理HTTP响应
-  Map<String, dynamic> _handleResponse(int statusCode, String responseBody) {
-    try {
-      final Map<String, dynamic> jsonResponse = jsonDecode(responseBody);
+  /// 标准化响应格式
+  Map<String, dynamic> _normalizeResponse(dynamic responseData) {
+    if (responseData is! Map<String, dynamic>) {
+      return {
+        'success': true,
+        'data': responseData,
+      };
+    }
 
-      if (statusCode >= 200 && statusCode < 300) {
-        // 兼容两种响应格式：
-        // 1. XBoard格式: {status: "success", data: {...}}
-        // 2. 通用格式: {success: true, data: {...}}
+    final jsonResponse = responseData as Map<String, dynamic>;
+
+    // 兼容两种响应格式：
+    // 1. XBoard格式: {status: "success", data: {...}}
+    // 2. 通用格式: {success: true, data: {...}}
+    
+    if (jsonResponse.containsKey('status')) {
+      // XBoard格式 -> 转换为通用格式
+      return {
+        'success': jsonResponse['status'] == 'success',
+        'status': jsonResponse['status'],
+        'message': jsonResponse['message'],
+        'data': jsonResponse['data'],
+        'total': jsonResponse['total'],
+      };
+    } else if (jsonResponse.containsKey('success')) {
+      // 已经是通用格式，直接返回
+      return jsonResponse;
+    } else {
+      // 其他格式，包装为通用格式
+      return {
+        'success': true,
+        'data': jsonResponse,
+      };
+    }
+  }
+
+  /// 处理Dio错误
+  DioException _handleDioError(DioException error) {
+    if (error.response != null) {
+      final statusCode = error.response!.statusCode!;
+      final responseData = error.response!.data;
+      
+      String errorMessage = '请求失败 (状态码: $statusCode)';
+      
+      if (responseData is Map<String, dynamic>) {
+        if (responseData.containsKey('message')) {
+          errorMessage = responseData['message'];
+        } else if (responseData.containsKey('error')) {
+          errorMessage = responseData['error'];
+        }
+      }
+
+      // 创建新的DioException，保持原有的错误信息但添加我们的错误消息
+      return DioException(
+        requestOptions: error.requestOptions,
+        response: error.response,
+        type: error.type,
+        error: errorMessage,
+        message: errorMessage,
+      );
+    }
+    
+    return error;
+  }
+
+  /// 转换Dio错误为XBoard异常
+  XBoardException _convertDioError(dynamic error) {
+    if (error is DioException) {
+      if (error.response != null) {
+        final statusCode = error.response!.statusCode!;
+        final errorMessage = error.message ?? '请求失败';
         
-        if (jsonResponse.containsKey('status')) {
-          // XBoard格式 -> 转换为通用格式
-          return {
-            'success': jsonResponse['status'] == 'success',
-            'status': jsonResponse['status'],
-            'message': jsonResponse['message'],
-            'data': jsonResponse['data'],
-            'total': jsonResponse['total'],
-          };
-        } else if (jsonResponse.containsKey('success')) {
-          // 已经是通用格式，直接返回
-          return jsonResponse;
+        if (statusCode == 401) {
+          return AuthException(errorMessage);
+        } else if (statusCode >= 400 && statusCode < 500) {
+          return ApiException(errorMessage, statusCode);
         } else {
-          // 其他格式，包装为通用格式
-          return {
-            'success': true,
-            'data': jsonResponse,
-          };
+          return NetworkException(errorMessage);
         }
       } else {
-        // HTTP错误状态码
-        String errorMessage = '请求失败 (状态码: $statusCode)';
-        
-        if (jsonResponse.containsKey('message')) {
-          errorMessage = jsonResponse['message'];
-        } else if (jsonResponse.containsKey('error')) {
-          errorMessage = jsonResponse['error'];
-        }
-
-        if (statusCode == 401) {
-          throw AuthException(errorMessage);
-        } else if (statusCode >= 400 && statusCode < 500) {
-          throw ApiException(errorMessage, statusCode);
-        } else {
-          throw NetworkException(errorMessage);
-        }
+        // 网络错误
+        return NetworkException('网络连接失败: ${error.message}');
       }
-    } catch (e) {
-      if (e is XBoardException) {
-        rethrow;
-      }
-      throw ApiException('响应解析失败: $e');
+    } else if (error is XBoardException) {
+      return error;
+    } else {
+      return ApiException('请求失败: $error');
     }
   }
+
+  /// 释放资源
+  void dispose() {
+    _dio.close();
+  }
+
+  /// 获取Dio实例（用于高级用法）
+  Dio get dio => _dio;
+
+  /// 获取TokenManager
+  TokenManager? get tokenManager => _tokenManager;
 } 
