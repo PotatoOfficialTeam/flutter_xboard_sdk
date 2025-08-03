@@ -20,28 +20,17 @@ class PaymentApi {
   }
 
   /// 提交订单支付
-  Future<ApiResponse<PaymentResponse>> submitOrderPayment(PaymentRequest request) async {
+  Future<ApiResponse<Map<String, dynamic>>> submitOrderPayment(PaymentRequest request) async {
     try {
       final result = await _httpService.postRequest('/api/v1/user/order/checkout', request.toJson());
       
       // checkout API直接返回支付网关格式: {type: 1, data: "url"}
-      // 不是标准的XBoard API格式，需要特殊处理
-      if (result.containsKey('type') && result.containsKey('data')) {
-        final paymentResponse = PaymentResponse(
-          success: true,
-          message: '支付链接获取成功',
-          data: result, // 保留原始数据结构 {type: 1, data: "url"}
-        );
-        
-        return ApiResponse<PaymentResponse>(
-          success: true,
-          message: '支付链接获取成功',
-          data: paymentResponse,
-        );
-      } else {
-        // 如果是标准格式，使用正常的ApiResponse处理
-        return ApiResponse.fromJson(result, (json) => PaymentResponse.fromJson(json as Map<String, dynamic>));
-      }
+      // 不包装，直接返回原始响应
+      return ApiResponse<Map<String, dynamic>>(
+        success: true,
+        message: '支付链接获取成功',
+        data: result,
+      );
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('提交订单支付失败: $e');
