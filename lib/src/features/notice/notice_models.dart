@@ -48,15 +48,36 @@ class NoticeResponse with _$NoticeResponse {
 
   factory NoticeResponse.fromJson(Map<String, dynamic> json) {
     // Extract 'data' and 'total' from the nested map
-    final Map<String, dynamic> innerData = json['data'] as Map<String, dynamic>;
-    final List<Notice> notices = (innerData['data'] as List<dynamic>)
-        .map((e) => Notice.fromJson(e as Map<String, dynamic>))
-        .toList();
-    final int totalCount = innerData['total'] as int;
+    final dynamic dataField = json['data'];
+    
+    // Handle case where 'data' might be a List instead of Map
+    if (dataField is List) {
+      // If data is directly a list of notices
+      final List<Notice> notices = dataField
+          .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return NoticeResponse(
+        data: notices,
+        total: notices.length,
+      );
+    } else if (dataField is Map<String, dynamic>) {
+      // If data is a map containing 'data' array and 'total'
+      final Map<String, dynamic> innerData = dataField;
+      final List<Notice> notices = (innerData['data'] as List<dynamic>)
+          .map((e) => Notice.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final int totalCount = innerData['total'] as int? ?? notices.length;
 
-    return NoticeResponse(
-      data: notices,
-      total: totalCount,
-    );
+      return NoticeResponse(
+        data: notices,
+        total: totalCount,
+      );
+    } else {
+      // Fallback: empty response
+      return const NoticeResponse(
+        data: [],
+        total: 0,
+      );
+    }
   }
 }
