@@ -59,6 +59,7 @@ class XBoardSDK {
   /// 初始化SDK
   /// [baseUrl] XBoard服务器的基础URL
   /// [tokenConfig] Token存储配置，如果不提供则使用默认配置
+  /// [proxyUrl] HTTP代理服务器地址，格式: username:password@host:port
   ///
   /// 示例:
   /// ```dart
@@ -70,10 +71,17 @@ class XBoardSDK {
   ///   'https://your-xboard-domain.com',
   ///   tokenConfig: TokenStorageConfig.production(),
   /// );
+  ///
+  /// // 使用代理
+  /// await XBoardSDK.instance.initialize(
+  ///   'https://your-xboard-domain.com',
+  ///   proxyUrl: 'username:password@proxy.example.com:8080',
+  /// );
   /// ```
   Future<void> initialize(
     String baseUrl, {
     TokenStorageConfig? tokenConfig,
+    String? proxyUrl,
   }) async {
     if (baseUrl.isEmpty) {
       throw ConfigException('Base URL cannot be empty');
@@ -125,7 +133,7 @@ class XBoardSDK {
     });
 
     // 初始化HTTP服务
-    _httpService = HttpService(cleanUrl, tokenManager: _tokenManager);
+    _httpService = HttpService(cleanUrl, tokenManager: _tokenManager, proxyUrl: proxyUrl);
 
     // Initialize API instances
     _paymentApi = PaymentApi(_httpService);

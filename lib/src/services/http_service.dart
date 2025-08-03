@@ -1,15 +1,18 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import '../exceptions/xboard_exceptions.dart';
 import '../core/token/token_manager.dart';
 import '../core/token/auth_interceptor.dart';
 
 class HttpService {
   final String baseUrl;
+  final String? proxyUrl;
   late final Dio _dio;
   TokenManager? _tokenManager;
   AuthInterceptor? _authInterceptor;
 
-  HttpService(this.baseUrl, {TokenManager? tokenManager}) {
+  HttpService(this.baseUrl, {TokenManager? tokenManager, this.proxyUrl}) {
     _tokenManager = tokenManager;
     _initializeDio();
   }
@@ -26,6 +29,17 @@ class HttpService {
         'Accept': 'application/json',
       },
     ));
+
+    // 配置代理
+    if (proxyUrl != null && proxyUrl!.isNotEmpty) {
+      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
+        client.findProxy = (uri) {
+          return "PROXY $proxyUrl";
+        };
+        return client;
+      };
+    }
 
     // 添加拦截器
     _dio.interceptors.add(LogInterceptor(
