@@ -20,13 +20,13 @@ class PaymentApi {
   }
 
   /// 提交订单支付
-  Future<Map<String, dynamic>> submitOrderPayment(PaymentRequest request) async {
+  Future<ApiResponse<Map<String, dynamic>>> submitOrderPayment(PaymentRequest request) async {
     try {
       final result = await _httpService.postRequest('/api/v1/user/order/checkout', request.toJson());
       
-      // checkout API直接返回支付网关格式: {type: 1, data: "url"}
-      // 完全不包装，直接返回原始响应
-      return result;
+      // HttpService会自动包装成: {success: true, data: {type: 1, data: "url"}}
+      // 我们直接使用ApiResponse.fromJson解析
+      return ApiResponse.fromJson(result, (json) => json as Map<String, dynamic>);
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('提交订单支付失败: $e');
