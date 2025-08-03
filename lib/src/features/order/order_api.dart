@@ -76,7 +76,7 @@ class OrderApi {
         "/api/v1/user/order/save",
         request.toJson(),
       );
-      return ApiResponse.fromJson(result, (json) => json['trade_no']?.toString() ?? '');
+      return ApiResponse.fromJson(result, (data) => data.toString());
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('创建订单失败: $e');

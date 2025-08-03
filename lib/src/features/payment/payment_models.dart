@@ -275,10 +275,8 @@ class PaymentState with _$PaymentState {
 @freezed
 class PaymentRequest with _$PaymentRequest {
   const factory PaymentRequest({
-    required String tradeNo,
+    @JsonKey(name: 'trade_no') required String tradeNo,
     required String method,
-    String? callbackUrl,
-    Map<String, dynamic>? extra,
   }) = _PaymentRequest;
 
   factory PaymentRequest.fromJson(Map<String, dynamic> json) => _$PaymentRequestFromJson(json);

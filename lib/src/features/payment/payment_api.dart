@@ -23,7 +23,25 @@ class PaymentApi {
   Future<ApiResponse<PaymentResponse>> submitOrderPayment(PaymentRequest request) async {
     try {
       final result = await _httpService.postRequest('/api/v1/user/order/checkout', request.toJson());
-      return ApiResponse.fromJson(result, (json) => PaymentResponse.fromJson(json as Map<String, dynamic>));
+      
+      // checkout API直接返回支付网关格式: {type: 1, data: "url"}
+      // 不是标准的XBoard API格式，需要特殊处理
+      if (result.containsKey('type') && result.containsKey('data')) {
+        final paymentResponse = PaymentResponse(
+          success: true,
+          message: '支付链接获取成功',
+          data: result, // 保留原始数据结构 {type: 1, data: "url"}
+        );
+        
+        return ApiResponse<PaymentResponse>(
+          success: true,
+          message: '支付链接获取成功',
+          data: paymentResponse,
+        );
+      } else {
+        // 如果是标准格式，使用正常的ApiResponse处理
+        return ApiResponse.fromJson(result, (json) => PaymentResponse.fromJson(json as Map<String, dynamic>));
+      }
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('提交订单支付失败: $e');
@@ -45,7 +63,25 @@ class PaymentApi {
   Future<ApiResponse<PaymentStatusResult>> checkOrderStatus(String tradeNo) async {
     try {
       final result = await _httpService.getRequest('/api/v1/user/order/check?trade_no=$tradeNo');
-      return ApiResponse.fromJson(result, (json) => PaymentStatusResult.fromJson(json as Map<String, dynamic>));
+      return ApiResponse.fromJson(result, (json) {
+        // API返回的data字段是整数状态码，需要转换为PaymentStatusResult
+        if (json is int) {
+          switch (json) {
+            case 0:
+              return PaymentStatusResult.pending('等待中');
+            case 2:
+              return PaymentStatusResult.canceled('订单已取消');
+            case 3:
+              return PaymentStatusResult.success('支付成功');
+            default:
+              return PaymentStatusResult.failed('未知状态: $json');
+          }
+        } else if (json is Map<String, dynamic>) {
+          return PaymentStatusResult.fromJson(json);
+        } else {
+          throw ApiException('无效的订单状态数据类型: ${json.runtimeType}');
+        }
+      });
     } catch (e) {
       if (e is XBoardException) rethrow;
       throw ApiException('检查订单状态失败: $e');
