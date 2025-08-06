@@ -40,6 +40,7 @@ class Plan with _$Plan {
     @JsonKey(name: 'group_id') required int groupId,
     @JsonKey(name: 'transfer_enable') required double transferEnable,
     required String name,
+    List<String>? tags,
     int? speedLimit,
     required bool show,
     String? content,
