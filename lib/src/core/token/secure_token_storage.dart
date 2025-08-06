@@ -179,7 +179,7 @@ class SecureTokenStorage implements TokenStorage {
     try {
       if (_cacheLoaded) return;
       
-      final futures = await Future.wait([
+      await Future.wait([
         getAccessToken(),
         getRefreshToken(),
         getTokenExpiry(),
