@@ -1,5 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
 
 part 'coupon_models.freezed.dart';
 part 'coupon_models.g.dart';

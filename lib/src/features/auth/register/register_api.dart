@@ -1,4 +1,3 @@
-import 'package:flutter_xboard_sdk/src/features/auth/register/register_models.dart';
 import 'package:flutter_xboard_sdk/src/services/http_service.dart';
 import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
 

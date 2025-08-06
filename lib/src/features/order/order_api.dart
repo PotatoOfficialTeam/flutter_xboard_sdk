@@ -1,6 +1,5 @@
 import 'package:flutter_xboard_sdk/src/services/http_service.dart';
 import 'package:flutter_xboard_sdk/src/features/order/order_models.dart';
-import 'package:flutter_xboard_sdk/src/features/order/order_models.dart' show OrderRelatedPlan, OrderRelatedPlanResponse;
 import 'package:flutter_xboard_sdk/src/exceptions/xboard_exceptions.dart';
 import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
 
@@ -112,7 +111,7 @@ class OrderApi {
       );
 
       final result = await _httpService.postRequest(
-        "/api/v1/user/payment/submit",
+        "/api/v1/user/order/checkout",
         request.toJson(),
       );
       return ApiResponse.fromJson(result, (json) => json);

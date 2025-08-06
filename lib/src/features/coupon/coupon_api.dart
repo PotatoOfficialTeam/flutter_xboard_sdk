@@ -1,7 +1,6 @@
 import 'package:flutter_xboard_sdk/src/services/http_service.dart';
 import 'package:flutter_xboard_sdk/src/features/coupon/coupon_models.dart';
 import 'package:flutter_xboard_sdk/src/exceptions/xboard_exceptions.dart';
-import 'package:flutter_xboard_sdk/src/common/models/api_response.dart';
 
 class CouponApi {
   final HttpService _httpService;
