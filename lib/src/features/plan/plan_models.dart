@@ -41,7 +41,7 @@ class Plan with _$Plan {
     @JsonKey(name: 'transfer_enable') required double transferEnable,
     required String name,
     List<String>? tags,
-    int? speedLimit,
+    @JsonKey(name: 'speed_limit') int? speedLimit,
     required bool show,
     String? content,
     @JsonKey(name: 'onetime_price', fromJson: _priceFromJson, toJson: _priceToJson)
