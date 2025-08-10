@@ -41,12 +41,7 @@ class HttpService {
       };
     }
 
-    // 添加拦截器
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      logPrint: (obj) => print('[HttpService] $obj'),
-    ));
+    // 添加拦截器（生产环境移除日志拦截器）
 
     // 添加响应格式化拦截器
     _dio.interceptors.add(InterceptorsWrapper(
