@@ -12,6 +12,7 @@ export 'src/core/token/token_storage.dart';
 export 'src/core/token/token_storage_config.dart';
 export 'src/core/token/secure_token_storage.dart';
 export 'src/core/token/memory_token_storage.dart';
+export 'src/core/token/shared_preferences_token_storage.dart';
 
 // 导出异常类
 export 'src/exceptions/xboard_exceptions.dart';
