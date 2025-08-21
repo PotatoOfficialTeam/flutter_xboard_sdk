@@ -41,7 +41,7 @@ class InviteApi {
   }
 
   String generateInviteLink(String code, {String? baseUrl}) {
-    final base = baseUrl ?? "https://app.wujie.one";
+    final base = baseUrl ?? "https://abcd168.icu";
     return '$base/?code=$code';
   }
 }

@@ -1,21 +1,15 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'token_storage.dart';
-import 'secure_token_storage.dart';
 import 'memory_token_storage.dart';
 import 'shared_preferences_token_storage.dart';
 
 /// Token存储配置类
 /// 
-/// 注意：从版本 2.5.9 开始，默认使用 SharedPreferencesTokenStorage 
-/// 替代 SecureTokenStorage，以解决 macOS Keychain 权限问题（错误 -34018）。
-/// 
-/// SharedPreferences 提供了：
+/// 使用 SharedPreferencesTokenStorage 作为默认实现，提供：
 /// - 跨平台一致性
 /// - 无需特殊权限
 /// - 简单可靠的存储
 /// 
-/// 如需更高安全性，可以手动配置使用 SecureTokenStorage，
-/// 但需要确保正确配置平台特定的权限。
+/// 支持多种配置选项以适应不同使用场景。
 
 /// Token存储配置类
 /// 提供不同场景下的token存储配置选项

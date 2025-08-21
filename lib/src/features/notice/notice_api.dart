@@ -16,13 +16,6 @@ class NoticeApi {
         "/api/v1/user/notice/fetch",
       );
 
-      // Debug prints to inspect the structure
-      print('Notice API raw result: $result');
-      print('Notice API result type: ${result.runtimeType}');
-      if (result.containsKey('data')) {
-        print('Notice API result[\'data\'] type: ${result['data'].runtimeType}');
-      }
-
       // Directly return fromJson, assuming the structure matches NoticeResponse
       final apiResponse = ApiResponse.fromJson(result, (json) => json); // Pass a dummy function for T
       if (apiResponse.success && apiResponse.data != null) {

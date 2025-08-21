@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'token_storage.dart';
-import 'secure_token_storage.dart';
+import 'shared_preferences_token_storage.dart';
 
 /// 认证状态枚举
 enum AuthState {
@@ -67,7 +67,7 @@ class TokenManager {
     bool autoRefresh = true,
     void Function()? onTokenExpired,
     void Function()? onRefreshFailed,
-  })  : _storage = storage ?? SecureTokenStorage(),
+  })  : _storage = storage ?? SharedPreferencesTokenStorage(),
         _refreshBuffer = refreshBuffer,
         _autoRefresh = autoRefresh,
         _onTokenExpired = onTokenExpired,
@@ -98,19 +98,11 @@ class TokenManager {
     required DateTime expiry,
   }) async {
     try {
-      if (_storage is SecureTokenStorage) {
-        await (_storage as SecureTokenStorage).saveTokens(
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-          expiry: expiry,
-        );
-      } else {
-        await Future.wait([
-          _storage.saveAccessToken(accessToken),
-          _storage.saveRefreshToken(refreshToken),
-          _storage.saveTokenExpiry(expiry),
-        ]);
-      }
+      await Future.wait([
+        _storage.saveAccessToken(accessToken),
+        _storage.saveRefreshToken(refreshToken),
+        _storage.saveTokenExpiry(expiry),
+      ]);
       
       _updateAuthState(AuthState.authenticated);
     } catch (e) {
@@ -208,10 +200,7 @@ class TokenManager {
   /// 初始化token状态
   Future<void> _initializeTokenState() async {
     try {
-      // 预加载缓存
-      if (_storage is SecureTokenStorage) {
-        await (_storage as SecureTokenStorage).preloadCache();
-      }
+      // Storage initialization complete
       
       final tokenInfo = await _getCurrentTokenInfo();
       if (tokenInfo == null) {
