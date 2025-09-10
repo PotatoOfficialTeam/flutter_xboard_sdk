@@ -24,7 +24,7 @@ class HttpService {
   /// 初始化Dio配置
   void _initializeDio() {
     _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
+      baseUrl: 'https://8.138.140.109:8888', // 测试用固定URL
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 30),
