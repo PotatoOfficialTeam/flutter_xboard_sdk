@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
@@ -47,6 +48,8 @@ class HttpService {
     // 添加响应格式化拦截器
     _dio.interceptors.add(InterceptorsWrapper(
       onResponse: (response, handler) {
+        // 检查是否需要解混淆
+        response.data = _deobfuscateResponse(response);
         response.data = _normalizeResponse(response.data);
         handler.next(response);
       },
@@ -165,6 +168,43 @@ class HttpService {
       return response.data as Map<String, dynamic>;
     } catch (e) {
       throw _convertDioError(e);
+    }
+  }
+
+  /// 解混淆响应数据
+  /// 
+  /// Caddy混淆规则：replace "{\"status\"" "OBFS_9K8L7M6N_{\"status\""
+  dynamic _deobfuscateResponse(Response response) {
+    // 检查是否包含混淆标识
+    final isObfuscated = response.headers.value('X-Obfuscated') == 'true';
+    
+    if (!isObfuscated) {
+      return response.data;
+    }
+    
+    try {
+      String responseText;
+      
+      // 获取响应文本
+      if (response.data is String) {
+        responseText = response.data as String;
+      } else {
+        // 如果不是字符串，可能已经被Dio解析为JSON了，需要重新序列化
+        responseText = jsonEncode(response.data);
+      }
+      
+      // 反混淆：移除混淆前缀
+      final deobfuscated = responseText.replaceAll('OBFS_9K8L7M6N_', '');
+      
+      // 尝试解析为JSON
+      if (deobfuscated.trim().startsWith('{') || deobfuscated.trim().startsWith('[')) {
+        return jsonDecode(deobfuscated);
+      }
+      
+      return deobfuscated;
+    } catch (e) {
+      // 解混淆失败，返回原始数据
+      return response.data;
     }
   }
 
