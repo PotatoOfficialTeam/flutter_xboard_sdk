@@ -24,10 +24,11 @@ class HttpService {
   /// 初始化Dio配置
   void _initializeDio() {
     _dio = Dio(BaseOptions(
-      baseUrl: 'https://8.138.140.109:8888', // 测试用固定URL
+      baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 30),
+      responseType: ResponseType.plain,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -136,6 +137,7 @@ class HttpService {
         path,
         options: Options(headers: headers),
       );
+      
       return response.data as Map<String, dynamic>;
     } catch (e) {
       throw _convertDioError(e);
@@ -150,6 +152,7 @@ class HttpService {
         data: data,
         options: Options(headers: headers),
       );
+      
       return response.data as Map<String, dynamic>;
     } catch (e) {
       throw _convertDioError(e);
@@ -164,6 +167,7 @@ class HttpService {
         data: data,
         options: Options(headers: headers),
       );
+      
       return response.data as Map<String, dynamic>;
     } catch (e) {
       throw _convertDioError(e);
@@ -177,6 +181,7 @@ class HttpService {
         path,
         options: Options(headers: headers),
       );
+      
       return response.data as Map<String, dynamic>;
     } catch (e) {
       throw _convertDioError(e);
@@ -187,33 +192,24 @@ class HttpService {
   /// 
   /// Caddy混淆规则：replace "{\"status\"" "OBFS_9K8L7M6N_{\"status\""
   dynamic _deobfuscateResponse(Response response) {
-    // 检查是否包含混淆标识
-    final isObfuscated = response.headers.value('X-Obfuscated') == 'true';
-    
-    if (!isObfuscated) {
-      return response.data;
-    }
-    
     try {
-      String responseText;
+      final responseText = response.data as String;
       
-      // 获取响应文本
-      if (response.data is String) {
-        responseText = response.data as String;
-      } else {
-        // 如果不是字符串，可能已经被Dio解析为JSON了，需要重新序列化
-        responseText = jsonEncode(response.data);
-      }
+      // 自动检测是否包含混淆前缀
+      final containsObfuscationPrefix = responseText.contains('OBFS_9K8L7M6N_');
       
-      // 反混淆：移除混淆前缀
-      final deobfuscated = responseText.replaceAll('OBFS_9K8L7M6N_', '');
-      
-      // 尝试解析为JSON
-      if (deobfuscated.trim().startsWith('{') || deobfuscated.trim().startsWith('[')) {
+      if (containsObfuscationPrefix) {
+        // 反混淆：移除混淆前缀
+        final deobfuscated = responseText.replaceAll('OBFS_9K8L7M6N_', '');
         return jsonDecode(deobfuscated);
+      } else {
+        // 没有混淆，尝试直接解析JSON
+        if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
+          return jsonDecode(responseText);
+        } else {
+          return responseText;
+        }
       }
-      
-      return deobfuscated;
     } catch (e) {
       // 解混淆失败，返回原始数据
       return response.data;
