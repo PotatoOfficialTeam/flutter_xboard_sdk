@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/services.dart';
 import '../exceptions/xboard_exceptions.dart';
 import '../core/token/token_manager.dart';
 import '../core/token/auth_interceptor.dart';
@@ -12,9 +13,11 @@ class HttpService {
   late final Dio _dio;
   TokenManager? _tokenManager;
   AuthInterceptor? _authInterceptor;
+  String? _expectedCertificatePem;
 
   HttpService(this.baseUrl, {TokenManager? tokenManager, this.proxyUrl}) {
     _tokenManager = tokenManager;
+    _loadClientCertificate();
     _initializeDio();
   }
 
@@ -32,16 +35,25 @@ class HttpService {
       },
     ));
 
-    // 配置代理
-    if (proxyUrl != null && proxyUrl!.isNotEmpty) {
-      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-        final client = HttpClient();
+    // 配置客户端证书和SSL验证
+    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      final client = HttpClient();
+      
+      // 配置代理
+      if (proxyUrl != null && proxyUrl!.isNotEmpty) {
         client.findProxy = (uri) {
           return "PROXY $proxyUrl";
         };
-        return client;
+      }
+      
+      // 配置SSL证书验证
+      client.badCertificateCallback = (X509Certificate cert, String host, int port) {
+        // 只验证证书，忽略主机名验证
+        return _verifyCertificate(cert);
       };
-    }
+      
+      return client;
+    };
 
     // 添加拦截器（生产环境移除日志拦截器）
 
@@ -205,6 +217,45 @@ class HttpService {
     } catch (e) {
       // 解混淆失败，返回原始数据
       return response.data;
+    }
+  }
+
+  /// 验证客户端证书
+  /// 
+  /// 只验证证书内容，忽略主机名验证
+  bool _verifyCertificate(X509Certificate cert) {
+    try {
+      if (_expectedCertificatePem == null) {
+        // 如果无法加载预期证书，则接受所有证书（开发模式）
+        return true;
+      }
+      
+      // 获取当前证书的PEM格式
+      final currentCertPem = cert.pem;
+      
+      // 比较证书内容（忽略空白字符差异）
+      final expectedNormalized = _expectedCertificatePem!.replaceAll(RegExp(r'\s+'), '');
+      final currentNormalized = currentCertPem.replaceAll(RegExp(r'\s+'), '');
+      
+      return expectedNormalized == currentNormalized;
+    } catch (e) {
+      // 证书验证出错，为安全起见拒绝连接
+      return false;
+    }
+  }
+  
+  /// 加载客户端证书
+  void _loadClientCertificate() {
+    try {
+      // 异步加载证书文件
+      rootBundle.loadString('packages/flutter_xboard_sdk/assets/cer/client-cert.crt').then((certContent) {
+        _expectedCertificatePem = certContent;
+      }).catchError((error) {
+        // 加载失败，保持为null（开发模式下接受所有证书）
+        _expectedCertificatePem = null;
+      });
+    } catch (e) {
+      _expectedCertificatePem = null;
     }
   }
 
