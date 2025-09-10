@@ -27,6 +27,7 @@ class HttpService {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; RmxDbGFzaC1XdWppZS1BUEkvMS4w)',
       },
     ));
 
@@ -176,7 +177,7 @@ class HttpService {
       };
     }
 
-    final jsonResponse = responseData as Map<String, dynamic>;
+    final jsonResponse = responseData;
 
     // 兼容两种响应格式：
     // 1. XBoard格式: {status: "success", data: {...}}

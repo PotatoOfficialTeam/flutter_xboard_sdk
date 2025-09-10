@@ -269,7 +269,7 @@ class XBoardSDK {
           final fullToken = data.authData ?? 'Bearer ${data.token}';
           
           await saveTokens(
-            accessToken: fullToken!,
+            accessToken: fullToken,
             refreshToken: fullToken, // 临时使用相同的token
             expiry: DateTime.now().add(const Duration(hours: 24)),
           );
